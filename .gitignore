@@ -1,0 +1,9 @@
+*.npy
+*.png
+*.pyc
+notes.txt
+__pycache__
+policiies/__pycache__
+testcar1_multi
+.DS_Store
+simulate_policy.py
