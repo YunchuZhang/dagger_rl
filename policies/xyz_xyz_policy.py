@@ -63,7 +63,7 @@ class XYZ_XYZ_Policy:
 		return ob
 
 	def process_observation(self, ob):
-		ob = [ob[key] for key in KEYS]
+		ob = [ob[key] for key in self.KEYS]
 		ob = np.concatenate(ob)
 		return ob
 

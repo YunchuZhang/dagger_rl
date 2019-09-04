@@ -115,10 +115,10 @@ def rollout(env,
 		count_infos.append(infos[-1]['puck_success'])
 		paths.append(path)
 
-	print('Minimum return: {}'.format(np.min(rewards)))
-	print('Maximum return: {}'.format(np.max(rewards)))
-	print('Mean return: {}'.format(np.mean(rewards)))
-	print('Mean final success: {}'.format(np.mean(count_infos)))
+	# print('Minimum return: {}'.format(np.min(rewards)))
+	# print('Maximum return: {}'.format(np.max(rewards)))
+	# print('Mean return: {}'.format(np.mean(rewards)))
+	# print('Mean final success: {}'.format(np.mean(count_infos)))
 
 	return _clean_paths(paths), return_stats(rewards, count_infos)
 

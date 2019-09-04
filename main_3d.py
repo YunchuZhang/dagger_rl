@@ -14,7 +14,7 @@ import tf_utils as tfu
 
 from multiworld.core.image_env import ImageEnv
 from multiworld.envs.mujoco.cameras import init_multiple_cameras
-from policies.xyz_xyz_policy import XYZ_XYZ_Policy
+from policies.tensor_xyz_policy import Tensor_XYZ_Policy
 from rollouts import rollout, append_paths
 from softlearning.environments.gym.wrappers import NormalizeActionWrapper
 
@@ -120,12 +120,15 @@ def main(args):
 	expert_policy, env = load_expert.get_policy(args.checkpoint_path)
 
 	## Define policy network
-	policy = XYZ_XYZ_Policy("dagger_xyz_xyz", env)
+	policy = Tensor_XYZ_Policy("dagger_tensor_xyz", env)
 
 	## Define DAGGER loss
-	ob = tfu.get_placeholder(name="ob",
+	goal_obs = tfu.get_placeholder(name="goal_obs",
 							dtype=tf.float32,
-							shape=[None, policy.obs_dim])
+							shape=[None, policy.state_obs_dim + policy.state_desired_dim])
+	crop = tfu.get_placeholder(name="crop",
+							dtype=tf.float32,
+							shape=[None, 16, 16, 16, 32])
 	act = tfu.get_placeholder(name="act",
 							dtype=tf.float32,
 							shape=[None, policy.act_dim])
@@ -144,6 +147,9 @@ def main(args):
 
 	expert_policy.set_weights(picklable['policy_weights'])
 	expert_policy.set_deterministic(True).__enter__()
+
+	# Load map3D weights (NOT COMPLETE). 			------ (IF WE MAKE A SEPARATE SESSION FOR MAP3D, THIS NEED NOT BE HERE, CAN BE INSIDE POLICY)
+	policy.map3D.finalize_graph()
 
 	# Collect initial data
 	if args.expert_data_path is None:

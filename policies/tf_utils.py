@@ -217,6 +217,45 @@ def conv2d(x,
 
         return tf.nn.conv2d(x, w, stride_shape, pad) + b
 
+def conv3d(x,
+           num_filters,
+           name,
+           filter_size=(3, 3),
+           stride=(1, 1),
+           pad="SAME",
+           dtype=tf.float32,
+           collections=None,
+           summary_tag=None):
+    with tf.variable_scope(name):
+        stride_shape = [1, stride[0], stride[1], 1]
+        filter_shape = [filter_size[0],
+                        filter_size[1],
+                        int(x.get_shape()[3]), num_filters]
+
+        fan_in = int(np.prod(filter_shape[:3]))
+        fan_out = int(np.prod(filter_shape[:2])) * num_filters
+        w_bound = np.sqrt(6. / (fan_in + fan_out))
+
+        w = tf.get_variable("W",
+                            filter_shape,
+                            dtype,
+                            tf.random_uniform_initializer(-w_bound, w_bound, seed=SEED),
+                            collections=collections)
+        b = tf.get_variable("b",
+                            [1, 1, 1, num_filters],
+                            initializer=tf.zeros_initializer(),
+                            collections=collections)
+
+        if summary_tag is not None:
+            tf.summary.image(summary_tag,
+                             tf.transpose(tf.reshape(w, [filter_size[0],
+                                                         filter_size[1],
+                                                         -1,
+                                                         1]), [2, 0, 1, 3]),
+                             max_images=10)
+
+        return tf.nn.conv2d(x, w, stride_shape, pad) + b
+
 
 
 def make_session(num_cpu=None, make_default=False, graph=None):
@@ -226,6 +265,7 @@ def make_session(num_cpu=None, make_default=False, graph=None):
     tf_config = tf.ConfigProto(
             inter_op_parallelism_threads=num_cpu,
             intra_op_parallelism_threads=num_cpu)
+    tf_config.gpu_options.allow_growth = True
     if make_default:
         return tf.InteractiveSession(config=tf_config, graph=graph)
     else:
