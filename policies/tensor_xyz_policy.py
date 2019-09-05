@@ -18,7 +18,7 @@ class Tensor_XYZ_Policy:
 	    self.state_obs_dim = env.observation_space.spaces['state_observation'].shape[0]
 	    self.state_desired_dim = env.observation_space.spaces['state_desired_goal'].shape[0]
 	    self.flatten_tensor_dim = 256  # Need to find a way to make this variable.
-	    obj_size = env.sim.model.geom_sizes[env.sim.model.geom_name2id('puckbox')]
+	    obj_size = env._env.env.sim.model.geom_size[env._env.env.sim.model.geom_name2id('puckbox')]
 
 	    self.obs_dim = self.flatten_tensor_dim + self.state_obs_dim + self.state_desired_dim
 	    self.act_dim = env.action_space.shape[0]
@@ -28,8 +28,8 @@ class Tensor_XYZ_Policy:
 	    # Define map3D model here
 	    # Writing skeleton below FOR NOW!!!!!
 	    name = "01_m64x64x64_p32x32_1e-3_F32_Oc_c1_s.1_Ve_d32_E32_a.8_i.2_push_and_reach_random_data_train_a35"
-		checkpoint_dir_ = os.path.join("checkpoints", name)
-		log_dir_ = os.path.join("logs_mujoco_offline", name)
+	    checkpoint_dir_ = os.path.join("checkpoints", name)
+	    log_dir_ = os.path.join("logs_mujoco_offline", name)
 	    self.map3D_graph = tf.Graph()
 	    map3D_sess = tfu.make_session(num_cpu=8)
 	    self.map3D = MUJOCO_ONLINE(self.map3D_graph,

@@ -19,6 +19,6 @@ def get_policy(checkpoint_path):
     evaluation_environment = get_environment_from_params(environment_params)
 
     policy = (get_policy_from_variant(variant, evaluation_environment, Qs=[None]))
-    # training_environment = get_environment_from_params_custom(environment_params)
+    training_environment = get_environment_from_params_custom(environment_params)
 
-    return policy, evaluation_environment
+    return policy, training_environment
