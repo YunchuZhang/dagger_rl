@@ -3,7 +3,9 @@ import tensorflow.contrib.slim as slim
 import numpy as np
 import tf_utils as tfu
 import os
-
+import sys
+sys.path.append("/home/robertmu")
+from discovery.test_model_loading import MUJOCO_ONLINE
 class Tensor_XYZ_Policy:
 
 	def __init__(self,
@@ -39,9 +41,9 @@ class Tensor_XYZ_Policy:
 	    						log_dir=log_dir_)
 	    self.map3D.build_graph() # Ensure no initialization or summaries are made.
 
-	    with tf.variable_scope(name):
-	    	self.scope = tf.get_variable_scope().name
-	    	self.build(hidden_sizes)
+		with tf.variable_scope(name):
+			self.scope = tf.get_variable_scope().name
+			self.build(hidden_sizes)
 
 
 	def build(self, hidden_sizes):
@@ -119,7 +121,7 @@ class Tensor_XYZ_Policy:
 		return tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES,
 								self.scope if scope is None else scope)
 
-    ###### THESE FUNCTIONS NEED SOME WORK ######
+	###### THESE FUNCTIONS NEED SOME WORK ######
 	def __getstate__(self):
 		d = {}
 		d['scope'] = self.scope
