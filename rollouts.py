@@ -97,11 +97,13 @@ def rollout(env,
 			R += reward
 
 			if terminal:
+				
 				if isinstance(policy, GaussianPolicy):
 					policy.reset()
 				break
 
 		assert len(infos) == t + 1
+		print("total_steps",t+1)
 
 
 		path = {key: np.stack(path[key], axis=0) for key in env_keys}
@@ -119,6 +121,8 @@ def rollout(env,
 	# print('Maximum return: {}'.format(np.max(rewards)))
 	# print('Mean return: {}'.format(np.mean(rewards)))
 	# print('Mean final success: {}'.format(np.mean(count_infos)))
+	import ipdb
+	ipdb.set_trace()
 
 	return _clean_paths(paths), return_stats(rewards, count_infos)
 
