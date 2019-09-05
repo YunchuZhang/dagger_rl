@@ -4,8 +4,11 @@ import numpy as np
 import tf_utils as tfu
 import os
 import sys
-sys.path.append("/home/robertmu")
+import getpass
+sys.path.append("/home/{}".format(getpass.getuser()))
 from discovery.test_model_loading import MUJOCO_ONLINE
+
+
 class Tensor_XYZ_Policy:
 
 	def __init__(self,
@@ -33,17 +36,18 @@ class Tensor_XYZ_Policy:
 	    checkpoint_dir_ = os.path.join("checkpoints", name)
 	    log_dir_ = os.path.join("logs_mujoco_offline", name)
 	    self.map3D_graph = tf.Graph()
-	    map3D_sess = tfu.make_session(num_cpu=8)
-	    self.map3D = MUJOCO_ONLINE(self.map3D_graph,
-	    						map3D_sess,
-	    						obj_size,
-	    						checkpoint_dir=checkpoint_dir_,
-	    						log_dir=log_dir_)
+	    map3D_sess = tfu.make_session(num_cpu=8, graph=self.map3D_graph)
+	    with self.map3D_graph.as_default():
+		    self.map3D = MUJOCO_ONLINE(self.map3D_graph,
+		    						map3D_sess,
+		    						obj_size,
+		    						checkpoint_dir=checkpoint_dir_,
+		    						log_dir=log_dir_)
 	    self.map3D.build_graph() # Ensure no initialization or summaries are made.
 
-		with tf.variable_scope(name):
-			self.scope = tf.get_variable_scope().name
-			self.build(hidden_sizes)
+	    with tf.variable_scope(name):
+                self.scope = tf.get_variable_scope().name
+                self.build(hidden_sizes)
 
 
 	def build(self, hidden_sizes):
@@ -74,7 +78,7 @@ class Tensor_XYZ_Policy:
 				net = slim.conv3d(net, dim, ksize, stride=1, padding=padding)
 				net = tf.nn.pool(net, [3,3,3], 'MAX', 'SAME', strides = [2,2,2])
 			net = tf.layers.flatten(net)
-		
+
 		out = tf.concat([net, goal_obs], -1)
 		for i, hidden_size in enumerate(hidden_sizes):
 
@@ -99,7 +103,7 @@ class Tensor_XYZ_Policy:
 		featRs = self.map3D.forward(data)
 		ob_tensor = np.hstack([data['state_desired_goal'],
 								data['state_observation']])
-		assert (featRs.shape[-1] + ob.shape[-1]) == self.obs_dim
+		assert (featRs.shape[-1] + ob_tensor.shape[-1]) == self.obs_dim
 		return featRs, ob_tensor
 
 	def process_observation(self, ob):

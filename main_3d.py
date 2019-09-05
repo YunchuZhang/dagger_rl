@@ -27,7 +27,7 @@ sns.set_style('whitegrid')
 multiworld.register_all_envs()
 
 def change_env_to_use_correct_mesh(mesh):
-    path_to_xml = os.path.join('../bc_robert/multiworld/multiworld/envs/assets/sawyer_xyz/sawyer_push_box.xml')
+    path_to_xml = os.path.join('../multiworld/multiworld/envs/assets/sawyer_xyz/sawyer_push_box.xml')
     tree = et.parse(path_to_xml)
     root = tree.getroot()
     [x.attrib for x in root.iter('geom')][0]['mesh']=mesh
@@ -149,9 +149,6 @@ def main(args):
 
 	expert_policy.set_weights(picklable['policy_weights'])
 	expert_policy.set_deterministic(True).__enter__()
-
-	# Load map3D weights (NOT COMPLETE). 			------ (IF WE MAKE A SEPARATE SESSION FOR MAP3D, THIS NEED NOT BE HERE, CAN BE INSIDE POLICY)
-	policy.map3D.finalize_graph()
 
 	# Collect initial data
 	if args.expert_data_path is None:
