@@ -3,7 +3,9 @@ import tensorflow.contrib.slim as slim
 import numpy as np
 import tf_utils as tfu
 import os
-
+import sys
+sys.path.append("/home/robertmu")
+from discovery.test_model_loading import MUJOCO_ONLINE
 class Tensor_XYZ_Policy:
 
 	def __init__(self,
@@ -11,37 +13,38 @@ class Tensor_XYZ_Policy:
 				 env,
 				 hidden_sizes=[64, 64, 64]):
 
-	    assert 'image_observation' in env.observation_space.spaces.keys()
-	    self.img_obs_dim = env.observation_space.spaces['image_observation'].shape
-	    self.depth_obs_dim = env.observation_space.spaces['depth_observation'].shape
-	    self.cam_obs_dim = env.observation_space.spaces['cam_info_observation'].shape
-	    self.state_obs_dim = env.observation_space.spaces['state_observation'].shape[0]
-	    self.state_desired_dim = env.observation_space.spaces['state_desired_goal'].shape[0]
-	    self.flatten_tensor_dim = 256  # Need to find a way to make this variable.
-	    obj_size = env.sim.model.geom_sizes[env.sim.model.geom_name2id('puckbox')]
+		assert 'image_observation' in env.observation_space.spaces.keys()
+		self.img_obs_dim = env.observation_space.spaces['image_observation'].shape
+		self.depth_obs_dim = env.observation_space.spaces['depth_observation'].shape
+		self.cam_obs_dim = env.observation_space.spaces['cam_info_observation'].shape
+		self.state_obs_dim = env.observation_space.spaces['state_observation'].shape[0]
+		self.state_desired_dim = env.observation_space.spaces['state_desired_goal'].shape[0]
+		self.flatten_tensor_dim = 256  # Need to find a way to make this variable.
 
-	    self.obs_dim = self.flatten_tensor_dim + self.state_obs_dim + self.state_desired_dim
-	    self.act_dim = env.action_space.shape[0]
-	    self.hidden_sizes = hidden_sizes
-	    self.KEYS = env.observation_space.spaces.keys()
+		obj_size = env.sim.model.geom_sizes[env.sim.model.geom_name2id('puckbox')]
 
-	    # Define map3D model here
-	    # Writing skeleton below FOR NOW!!!!!
-	    name = "01_m64x64x64_p32x32_1e-3_F32_Oc_c1_s.1_Ve_d32_E32_a.8_i.2_push_and_reach_random_data_train_a35"
+		self.obs_dim = self.flatten_tensor_dim + self.state_obs_dim + self.state_desired_dim
+		self.act_dim = env.action_space.shape[0]
+		self.hidden_sizes = hidden_sizes
+		self.KEYS = env.observation_space.spaces.keys()
+
+		# Define map3D model here
+		# Writing skeleton below FOR NOW!!!!!
+		name = "01_m64x64x64_p32x32_1e-3_F32_Oc_c1_s.1_Ve_d32_E32_a.8_i.2_push_and_reach_random_data_train_a35"
 		checkpoint_dir_ = os.path.join("checkpoints", name)
 		log_dir_ = os.path.join("logs_mujoco_offline", name)
-	    self.map3D_graph = tf.Graph()
-	    map3D_sess = tfu.make_session(num_cpu=8)
-	    self.map3D = MUJOCO_ONLINE(self.map3D_graph,
-	    						map3D_sess,
-	    						obj_size,
-	    						checkpoint_dir=checkpoint_dir_,
-	    						log_dir=log_dir_)
-	    self.map3D.build_graph() # Ensure no initialization or summaries are made.
+		self.map3D_graph = tf.Graph()
+		map3D_sess = tfu.make_session(num_cpu=8)
+		self.map3D = MUJOCO_ONLINE(self.map3D_graph,
+								map3D_sess,
+								obj_size,
+								checkpoint_dir=checkpoint_dir_,
+								log_dir=log_dir_)
+		self.map3D.build_graph() # Ensure no initialization or summaries are made.
 
-	    with tf.variable_scope(name):
-	    	self.scope = tf.get_variable_scope().name
-	    	self.build(hidden_sizes)
+		with tf.variable_scope(name):
+			self.scope = tf.get_variable_scope().name
+			self.build(hidden_sizes)
 
 
 	def build(self, hidden_sizes):
@@ -119,7 +122,7 @@ class Tensor_XYZ_Policy:
 		return tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES,
 								self.scope if scope is None else scope)
 
-    ###### THESE FUNCTIONS NEED SOME WORK ######
+	###### THESE FUNCTIONS NEED SOME WORK ######
 	def __getstate__(self):
 		d = {}
 		d['scope'] = self.scope

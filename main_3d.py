@@ -27,7 +27,7 @@ sns.set_style('whitegrid')
 multiworld.register_all_envs()
 
 def change_env_to_use_correct_mesh(mesh):
-    path_to_xml = os.path.join('../multiworld/multiworld/envs/assets/sawyer_xyz/sawyer_push_box.xml')
+    path_to_xml = os.path.join('../bc_robert/multiworld/multiworld/envs/assets/sawyer_xyz/sawyer_push_box.xml')
     tree = et.parse(path_to_xml)
     root = tree.getroot()
     [x.attrib for x in root.iter('geom')][0]['mesh']=mesh
@@ -118,6 +118,8 @@ def main(args):
 
 	## Define expert
 	expert_policy, env = load_expert.get_policy(args.checkpoint_path)
+	import ipdb
+	ipdb.set_trace()
 
 	## Define policy network
 	policy = Tensor_XYZ_Policy("dagger_tensor_xyz", env)
