@@ -1,5 +1,7 @@
 import argparse
 import os
+
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 import json
 import pickle
 import numpy as np
@@ -118,8 +120,6 @@ def main(args):
 
 	## Define expert
 	expert_policy, env = load_expert.get_policy(args.checkpoint_path)
-	import ipdb
-	ipdb.set_trace()
 
 	## Define policy network
 	policy = Tensor_XYZ_Policy("dagger_tensor_xyz", env)
@@ -167,6 +167,7 @@ def main(args):
 	## Start training
 
 	# Start for loop
+
 	for i in tqdm.tqdm(range(args.num_iterations)):
 		# print('\nIteration {} :'.format(i+1))
 		# Parse dataset for supervised learning
@@ -185,6 +186,7 @@ def main(args):
 				policy,
 				expert_policy)
 		data = append_paths(data, roll)
+
 		for key in plotters.keys(): plotters[key].append(plot_data[key])
 
 	# Plotting results

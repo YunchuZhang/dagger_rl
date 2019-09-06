@@ -121,8 +121,7 @@ def rollout(env,
 	# print('Maximum return: {}'.format(np.max(rewards)))
 	# print('Mean return: {}'.format(np.mean(rewards)))
 	# print('Mean final success: {}'.format(np.mean(count_infos)))
-	import ipdb
-	ipdb.set_trace()
+
 
 	return _clean_paths(paths), return_stats(rewards, count_infos)
 
