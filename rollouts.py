@@ -103,7 +103,7 @@ def rollout(env,
 				break
 
 		assert len(infos) == t + 1
-		print("total_steps",t+1)
+		# print("total_steps",t+1)
 
 
 		path = {key: np.stack(path[key], axis=0) for key in env_keys}

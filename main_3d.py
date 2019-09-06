@@ -172,7 +172,7 @@ def main(args):
 	# Start for loop
 
 	for i in tqdm.tqdm(range(args.num_iterations)):
-		# print('\nIteration {} :'.format(i+1))
+		print('\nIteration {} :'.format(i+1))
 		# Parse dataset for supervised learning
 		num_samples = data['state_observation'].shape[0]
 		idx = np.arange(num_samples)

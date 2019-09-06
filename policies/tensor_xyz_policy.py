@@ -14,7 +14,7 @@ class Tensor_XYZ_Policy:
 	def __init__(self,
 				 name,
 				 env,
-				 hidden_sizes=[64, 64, 64]):
+				 hidden_sizes=[64, 32]):
 
 		assert 'image_observation' in env.observation_space.spaces.keys()
 		self.img_obs_dim = env.observation_space.spaces['image_observation'].shape
@@ -22,7 +22,7 @@ class Tensor_XYZ_Policy:
 		self.cam_obs_dim = env.observation_space.spaces['cam_info_observation'].shape
 		self.state_obs_dim = env.observation_space.spaces['state_observation'].shape[0]
 		self.state_desired_dim = env.observation_space.spaces['state_desired_goal'].shape[0]
-		self.flatten_tensor_dim = 256  # Need to find a way to make this variable.
+		# self.flatten_tensor_dim = 256  # Need to find a way to make this variable.
 		obj_size = env._env.env.sim.model.geom_size[env._env.env.sim.model.geom_name2id('puckbox')]
 
 		self.obs_dim = self.flatten_tensor_dim + self.state_obs_dim + self.state_desired_dim
@@ -62,22 +62,25 @@ class Tensor_XYZ_Policy:
 							shape=[None, 16, 16, 16, 32])
 
 		bn = True
+
 		with slim.arg_scope([slim.conv3d, slim.conv3d_transpose],
 							activation_fn=tf.nn.relu,
 							normalizer_fn=slim.batch_norm if bn else None,
 							):
 			d0 = 16
-			dims = [d0, 2*d0, 4*d0, 8*d0, 16*d0]
-			ksizes = [4, 4, 4, 4, 8]
-			strides = [2, 2, 2, 2, 1]
-			paddings = ['SAME'] * 4 + ['VALID']
+			dims = [d0, 2*d0, 4*d0, 8*d0]
+			ksizes = [4, 4, 4, 4]
+			strides = [2, 2, 2, 2]
+			paddings = ['SAME'] * 4
 
-			ksizes[-1] = 1
+			# ksizes[-1] = 2
 			net = crop
 			for i, (dim, ksize, stride, padding) in enumerate(zip(dims, ksizes, strides, paddings)):
 				net = slim.conv3d(net, dim, ksize, stride=1, padding=padding)
 				net = tf.nn.pool(net, [3,3,3], 'MAX', 'SAME', strides = [2,2,2])
+
 			net = tf.layers.flatten(net)
+
 
 		out = tf.concat([net, goal_obs], -1)
 		for i, hidden_size in enumerate(hidden_sizes):
