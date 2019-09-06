@@ -176,9 +176,9 @@ def main(args):
 		np.random.shuffle(idx)
 		for j in range(num_samples // args.mb_size):
 			np.random.shuffle(idx)
-			obs_train = policy.train_process_observation(data, idx[:args.mb_size])
+			feat_train, goal_obs_train = policy.train_process_observation(data, idx[:args.mb_size])
 			act_train = data['actions'][idx[:args.mb_size]]
-			session.run(opt, feed_dict={ob:obs_train, act:act_train})
+			session.run(opt, feed_dict={crop:feat_train, goal_obs:goal_obs_train, act:act_train})
 		# Perform rollouts
 		roll, plot_data = rollout(env,
 				args.num_rollouts,
