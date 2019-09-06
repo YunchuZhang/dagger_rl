@@ -141,9 +141,18 @@ def main(args):
 	opt = tf.train.AdamOptimizer().minimize(loss)
 
 	# Start session
-	session = tfu.make_session(num_cpu=8)
+	session = tfu.make_session(num_cpu=40)
 	session.__enter__()
-	session.run(tf.global_variables_initializer())
+	# session.run(tf.global_variables_initializer())
+
+	# Load map3D network
+	freeze_patterns = []
+	freeze_patterns.append("feat")
+
+	freeze_list = tf.contrib.framework.filter_variables(
+		tf.trainable_variables(),
+		include_patterns=freeze_patterns)
+	policy.map3D.finalize_graph()
 
 	# Load expert policy
 	pickle_path = os.path.join(args.checkpoint_path, 'checkpoint.pkl')
@@ -172,7 +181,7 @@ def main(args):
 	# Start for loop
 
 	for i in tqdm.tqdm(range(args.num_iterations)):
-		print('\nIteration {} :'.format(i+1))
+		# print('\nIteration {} :'.format(i+1))
 		# Parse dataset for supervised learning
 		num_samples = data['state_observation'].shape[0]
 		idx = np.arange(num_samples)
