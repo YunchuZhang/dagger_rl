@@ -22,7 +22,7 @@ class Tensor_XYZ_Policy:
 		self.cam_obs_dim = env.observation_space.spaces['cam_info_observation'].shape
 		self.state_obs_dim = env.observation_space.spaces['state_observation'].shape[0]
 		self.state_desired_dim = env.observation_space.spaces['state_desired_goal'].shape[0]
-		# self.flatten_tensor_dim = 256  # Need to find a way to make this variable.
+		self.flatten_tensor_dim = 256  # Need to find a way to make this variable.
 		obj_size = env._env.env.sim.model.geom_size[env._env.env.sim.model.geom_name2id('puckbox')]
 
 		self.obs_dim = self.flatten_tensor_dim + self.state_obs_dim + self.state_desired_dim
@@ -41,6 +41,7 @@ class Tensor_XYZ_Policy:
 		self.map3D = MUJOCO_ONLINE(self.map3D_graph,
 								map3D_sess,
 								obj_size,
+								0.05,
 								checkpoint_dir=checkpoint_dir_,
 								log_dir=log_dir_)
 		self.map3D.build_graph() # Ensure no initialization or summaries are made.
