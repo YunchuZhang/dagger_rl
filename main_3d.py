@@ -8,6 +8,9 @@ import numpy as np
 import tqdm
 from xml.etree import ElementTree as et
 
+import warnings
+warnings.filterwarnings("ignore")
+
 import tensorflow as tf
 import multiworld
 import gym

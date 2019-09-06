@@ -105,7 +105,7 @@ class Tensor_XYZ_Policy:
 			featRs.append(self.map3D.forward(datas))
 
 		featRs = np.vstack(featRs)
-		data = {data[key][idx] for key in self.KEYS}
+		data = {key: data[key][idx] for key in self.KEYS}
 		ob_tensor = np.hstack([data['state_desired_goal'],
 								data['state_observation']])
 
