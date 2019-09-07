@@ -116,14 +116,14 @@ class Tensor_XYZ_Policy:
 		return featRs, ob_tensor
 
 	def process_observation(self, ob):
-
+		ob = {key: np.expand_dims(ob[key], axis=0) for key in ob.keys()}
 		featRs = self.map3D.forward(ob)
 		ob_tensor = np.concatenate((ob['state_desired_goal'],ob['state_observation']))
 		return featRs, ob_tensor
 
 	def act(self, ob):
 		crop, ob = self.process_observation(ob)
-		ac = self._act(ob[None],crop)
+		ac = self._act(ob,crop)
 		return ac[0]
 
 	def get_variables(self, scope=None):
