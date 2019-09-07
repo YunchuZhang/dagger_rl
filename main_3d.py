@@ -92,6 +92,7 @@ def parse_args():
 	parser.add_argument('--num-rollouts', '-n', type=int, default=10)
 	parser.add_argument('--num-iterations', type=int, default=50)
 	parser.add_argument('--mb_size', type=int, default=64)
+	parser.add_argument('--plot_freq', type=int, default=5)
 
 	args = parser.parse_args()
 
@@ -203,7 +204,7 @@ def main(args):
 			np.random.shuffle(idx)
 			feat_train, goal_obs_train = policy.train_process_observation(data, idx[:args.mb_size])
 			act_train = data['actions'][idx[:args.mb_size]]
-			loss,_ = session.run([loss_op,opt], feed_dict={crop:feat_train, goal_obs:goal_obs_train, act:act_train})
+			loss, _ = session.run([loss_op,opt], feed_dict={crop:feat_train, goal_obs:goal_obs_train, act:act_train})
 			set_writer.add_summary(loss, global_step=global_step)
 		
 		# Perform rollouts
@@ -215,6 +216,15 @@ def main(args):
 		data = append_paths(data, roll)
 
 		for key in plotters.keys(): plotters[key].append(plot_data[key])
+
+		if i%args.plot_freq==0:
+			plot_data(plotters)
+
+	plot_data(plotters)
+
+	# tf.get_default_session().close()
+
+def plot_data(plotters):
 
 	# Plotting results
 	color_list = ["#363737"]
@@ -228,13 +238,11 @@ def main(args):
 	plt.rcParams["font.size"] = 8.3
 	for i, key in enumerate(plotters.keys()):
 		ax = plt.subplot(2,2,i+1)
-		plt.plot(range(args.num_iterations), plotters[key])
+		plt.plot(range(len(plotters[key])), plotters[key])
 		plt.title(key)
 	plt.tight_layout()
 	plt.savefig('metrics.png', dpi=300)
 	plt.close()
-
-	# tf.get_default_session().close()
 
 if __name__ == '__main__':
 	args = parse_args()

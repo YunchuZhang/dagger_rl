@@ -103,8 +103,8 @@ class Tensor_XYZ_Policy:
 
 	def train_process_observation(self, data, idx):
 		featRs = []
-		for i in idx:
-			datas = {key: data[key][i] for key in self.KEYS}
+		for i in range(0,len(idx),16):
+			datas = {key: data[key][idx[i:i+16]] for key in self.KEYS}
 			featRs.append(self.map3D.forward(datas))
 
 		featRs = np.vstack(featRs)
