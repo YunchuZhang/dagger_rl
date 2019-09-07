@@ -121,6 +121,11 @@ def main(args):
 				'mean_return': [],
 				'mean_final_success': []}
 
+
+	name = "dagger_tensor_xyz"
+	log_dir_ = os.path.join("logs_mujoco_offline", name)
+	set_writer = tf.summary.FileWriter(log_dir_ + '/train', None)
+
 	## Define expert
 	expert_policy, env = load_expert.get_policy(args.checkpoint_path)
 
@@ -133,12 +138,14 @@ def main(args):
 							shape=[None, policy.state_obs_dim + policy.state_desired_dim])
 	crop = tfu.get_placeholder(name="crop",
 							dtype=tf.float32,
-							shape=[None, 16, 16, 16, 32])
+							shape=[None, 16, 16, 8, 32])
 	act = tfu.get_placeholder(name="act",
 							dtype=tf.float32,
 							shape=[None, policy.act_dim])
 	loss = tf.reduce_mean(tf.squared_difference(policy.ac, act))
 	opt = tf.train.AdamOptimizer().minimize(loss)
+
+	
 
 	# Start session
 	session = tfu.make_session(num_cpu=40)
@@ -152,7 +159,11 @@ def main(args):
 	freeze_list = tf.contrib.framework.filter_variables(
 		tf.trainable_variables(),
 		include_patterns=freeze_patterns)
+
+
 	policy.map3D.finalize_graph()
+	# seperate with map_3d summary
+	loss_op = tf.summary.scalar('loss', loss)
 
 	# Load expert policy
 	pickle_path = os.path.join(args.checkpoint_path, 'checkpoint.pkl')
@@ -179,6 +190,7 @@ def main(args):
 	## Start training
 
 	# Start for loop
+	global_step = 0
 
 	for i in tqdm.tqdm(range(args.num_iterations)):
 		# print('\nIteration {} :'.format(i+1))
@@ -187,10 +199,13 @@ def main(args):
 		idx = np.arange(num_samples)
 		np.random.shuffle(idx)
 		for j in range(num_samples // args.mb_size):
+			global_step = global_step + 1
 			np.random.shuffle(idx)
 			feat_train, goal_obs_train = policy.train_process_observation(data, idx[:args.mb_size])
 			act_train = data['actions'][idx[:args.mb_size]]
-			session.run(opt, feed_dict={crop:feat_train, goal_obs:goal_obs_train, act:act_train})
+			loss,_ = session.run([loss_op,opt], feed_dict={crop:feat_train, goal_obs:goal_obs_train, act:act_train})
+			set_writer.add_summary(loss, global_step=global_step)
+		
 		# Perform rollouts
 		roll, plot_data = rollout(env,
 				args.num_rollouts,

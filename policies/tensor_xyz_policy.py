@@ -59,7 +59,7 @@ class Tensor_XYZ_Policy:
 
 		crop = tfu.get_placeholder(name="crop",
 							dtype=tf.float32,
-							shape=[None, 16, 16, 16, 32])
+							shape=[None, 16, 16, 8, 32])
 
 		bn = True
 
