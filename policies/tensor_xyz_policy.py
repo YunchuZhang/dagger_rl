@@ -102,13 +102,14 @@ class Tensor_XYZ_Policy:
 		self.unflatvars = tfu.SetFromFlat(self.get_trainable_variables())
 
 	def train_process_observation(self, data, idx):
-		featRs = []
-		for i in range(0,len(idx),16):
-			datas = {key: data[key][idx[i:i+16]] for key in self.KEYS}
-			featRs.append(self.map3D.forward(datas))
+		# featRs = []
+		# for i in range(0,len(idx),64):
+		# 	datas = {key: data[key][idx[i:i+64]] for key in self.KEYS}
+		# 	featRs.append(self.map3D.forward(datas))
 
-		featRs = np.vstack(featRs)
+		# featRs = np.vstack(featRs)
 		data = {key: data[key][idx] for key in self.KEYS}
+		fatRs = self.map3D.forward(data)
 		ob_tensor = np.hstack([data['state_desired_goal'],
 								data['state_observation']])
 

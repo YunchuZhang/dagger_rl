@@ -88,7 +88,7 @@ def parse_args():
 						default=None,
 						type=str,
 						help='Path to some initial expert data collected.')
-	parser.add_argument('--max-path-length', '-l', type=int, default=100)
+	parser.add_argument('--max-path-length', '-l', type=int, default=50)
 	parser.add_argument('--num-rollouts', '-n', type=int, default=10)
 	parser.add_argument('--num-iterations', type=int, default=50)
 	parser.add_argument('--mb_size', type=int, default=64)
@@ -197,6 +197,7 @@ def main(args):
 		# print('\nIteration {} :'.format(i+1))
 		# Parse dataset for supervised learning
 		num_samples = data['state_observation'].shape[0]
+		print(num_samples)
 		idx = np.arange(num_samples)
 		np.random.shuffle(idx)
 		for j in range(num_samples // args.mb_size):
@@ -218,13 +219,13 @@ def main(args):
 		for key in plotters.keys(): plotters[key].append(plot_data[key])
 
 		if i%args.plot_freq==0:
-			plot_data(plotters)
+			plotting_data(plotters)
 
-	plot_data(plotters)
+	plotting_data(plotters)
 
 	# tf.get_default_session().close()
 
-def plot_data(plotters):
+def plotting_data(plotters):
 
 	# Plotting results
 	color_list = ["#363737"]
