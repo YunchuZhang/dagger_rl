@@ -108,8 +108,9 @@ class Tensor_XYZ_Policy:
 		# 	featRs.append(self.map3D.forward(datas))
 
 		# featRs = np.vstack(featRs)
+
 		data = {key: data[key][idx] for key in self.KEYS}
-		fatRs = self.map3D.forward(data)
+		featRs = self.map3D.forward(data)
 		ob_tensor = np.hstack([data['state_desired_goal'],
 								data['state_observation']])
 
@@ -117,9 +118,10 @@ class Tensor_XYZ_Policy:
 		return featRs, ob_tensor
 
 	def process_observation(self, ob):
-		ob = {key: np.expand_dims(ob[key], axis=0) for key in ob.keys()}
+		ob = {key: np.repeat(np.expand_dims(ob[key], axis=0),4, axis = 0) for key in ob.keys()}
 		featRs = self.map3D.forward(ob)
-		ob_tensor = np.concatenate((ob['state_desired_goal'],ob['state_observation']))
+
+		ob_tensor = np.hstack([ob['state_desired_goal'],ob['state_observation']])
 		return featRs, ob_tensor
 
 	def act(self, ob):

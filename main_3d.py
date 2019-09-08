@@ -32,36 +32,36 @@ sns.set_style('whitegrid')
 multiworld.register_all_envs()
 
 def change_env_to_use_correct_mesh(mesh):
-    path_to_xml = os.path.join('../multiworld/multiworld/envs/assets/sawyer_xyz/sawyer_push_box.xml')
-    tree = et.parse(path_to_xml)
-    root = tree.getroot()
-    [x.attrib for x in root.iter('geom')][0]['mesh']=mesh
-     #set the masses, inertia and friction in a plausible way
+	path_to_xml = os.path.join('../multiworld/multiworld/envs/assets/sawyer_xyz/sawyer_push_box.xml')
+	tree = et.parse(path_to_xml)
+	root = tree.getroot()
+	[x.attrib for x in root.iter('geom')][0]['mesh']=mesh
+	 #set the masses, inertia and friction in a plausible way
 
-    physics_dict = {}
-    physics_dict["printer"] =  ["6.0", ".00004 .00003 .00004", "1 1 .0001" ]
-    physics_dict["mug1"] =  ["0.31", ".000000001 .0000000009 .0000000017", "0.008 0.008 .00001" ]
-    physics_dict["mug2"] =  ["0.27", ".000000001 .0000000009 .0000000017", "0.008 0.008 .00001" ]
-    physics_dict["mug3"] =  ["0.33", ".000000001 .0000000009 .0000000017", "0.008 0.008 .00001" ]
-    physics_dict["can1"] =  ["0.55", ".00000002 .00000002 .00000001", "0.2 0.2 .0001" ]
-    physics_dict["car1"] =  ["0.2", ".0000000017 .0000000005 .0000000019", "1.2 1.2 .00001" ]
-    physics_dict["car2"] =  ["0.4", ".0000000017 .0000000005 .0000000019", "1.2 1.2 .00001" ]
-    physics_dict["car3"] =  ["0.5", ".0000000017 .0000000005 .0000000019", "1.2 1.2 .00001" ]
-    physics_dict["car4"] =  ["0.8", ".0000000017 .0000000005 .0000000019", "1.2 1.2 .00001" ]
-    physics_dict["car5"] =  ["2.0", ".0000000017 .0000000005 .0000000019", "1.2 1.2 .00001" ]
-    physics_dict["boat"] =  ["7.0", ".00000002 .00000002 .00000001", "0.2 0.2 .0001" ]
-    physics_dict["bowl1"] =  ["0.1", ".00000002 .00000002 .00000001", "0.2 0.2 .0001" ]
-    physics_dict["bowl2"] =  ["0.3", ".00000002 .00000002 .00000001", "0.2 0.2 .0001" ]
-    physics_dict["bowl4"] =  ["0.7", ".00000002 .00000002 .00000001", "0.2 0.2 .0001" ]
-    physics_dict["hat1"] =  ["0.2", ".00000002 .00000002 .00000001", "0.2 0.2 .0001" ]
-    physics_dict["hat2"] =  ["0.4", ".00000002 .00000002 .00000001", "0.2 0.2 .0001" ]
+	physics_dict = {}
+	physics_dict["printer"] =  ["6.0", ".00004 .00003 .00004", "1 1 .0001" ]
+	physics_dict["mug1"] =  ["0.31", ".000000001 .0000000009 .0000000017", "0.008 0.008 .00001" ]
+	physics_dict["mug2"] =  ["0.27", ".000000001 .0000000009 .0000000017", "0.008 0.008 .00001" ]
+	physics_dict["mug3"] =  ["0.33", ".000000001 .0000000009 .0000000017", "0.008 0.008 .00001" ]
+	physics_dict["can1"] =  ["0.55", ".00000002 .00000002 .00000001", "0.2 0.2 .0001" ]
+	physics_dict["car1"] =  ["0.2", ".0000000017 .0000000005 .0000000019", "1.2 1.2 .00001" ]
+	physics_dict["car2"] =  ["0.4", ".0000000017 .0000000005 .0000000019", "1.2 1.2 .00001" ]
+	physics_dict["car3"] =  ["0.5", ".0000000017 .0000000005 .0000000019", "1.2 1.2 .00001" ]
+	physics_dict["car4"] =  ["0.8", ".0000000017 .0000000005 .0000000019", "1.2 1.2 .00001" ]
+	physics_dict["car5"] =  ["2.0", ".0000000017 .0000000005 .0000000019", "1.2 1.2 .00001" ]
+	physics_dict["boat"] =  ["7.0", ".00000002 .00000002 .00000001", "0.2 0.2 .0001" ]
+	physics_dict["bowl1"] =  ["0.1", ".00000002 .00000002 .00000001", "0.2 0.2 .0001" ]
+	physics_dict["bowl2"] =  ["0.3", ".00000002 .00000002 .00000001", "0.2 0.2 .0001" ]
+	physics_dict["bowl4"] =  ["0.7", ".00000002 .00000002 .00000001", "0.2 0.2 .0001" ]
+	physics_dict["hat1"] =  ["0.2", ".00000002 .00000002 .00000001", "0.2 0.2 .0001" ]
+	physics_dict["hat2"] =  ["0.4", ".00000002 .00000002 .00000001", "0.2 0.2 .0001" ]
 
-    #set parameters
-    [x.attrib for x in root.iter('inertial')][0]['mass'] = physics_dict[mesh][0]
-    [x.attrib for x in root.iter('inertial')][0]['diaginertia'] = physics_dict[mesh][1]
-    [x.attrib for x in root.iter('geom')][0]['friction'] = physics_dict[mesh][2]
+	#set parameters
+	[x.attrib for x in root.iter('inertial')][0]['mass'] = physics_dict[mesh][0]
+	[x.attrib for x in root.iter('inertial')][0]['diaginertia'] = physics_dict[mesh][1]
+	[x.attrib for x in root.iter('geom')][0]['friction'] = physics_dict[mesh][2]
 
-    tree.write(path_to_xml)
+	tree.write(path_to_xml)
 
 def parse_args():
 	parser = argparse.ArgumentParser()
@@ -70,28 +70,28 @@ def parse_args():
 						default='SawyerPushAndReachEnvEasy-v0',
 						help='Environment we are trying to run.')
 	parser.add_argument('--mesh',
-                        default=None,
-                        type=str,
-                        help="Mesh used for Sawyer Task.")
+						default=None,
+						type=str,
+						help="Mesh used for Sawyer Task.")
 	parser.add_argument('--checkpoint_path',
-    					type=str,
-    					help='Path to the checkpoint.')
+						type=str,
+						help='Path to the checkpoint.')
 	parser.add_argument('--goal_type',
-    					type=str,
-    					default='xyz',
-    					choices=['xyz', '3d'])
+						type=str,
+						default='xyz',
+						choices=['xyz', '3d'])
 	parser.add_argument('--obs_type',
-    					type=str,
-    					default='xyz',
-    					choices=['xyz', '3d'])
+						type=str,
+						default='xyz',
+						choices=['xyz', '3d'])
 	parser.add_argument('--expert_data_path',
 						default=None,
 						type=str,
 						help='Path to some initial expert data collected.')
-	parser.add_argument('--max-path-length', '-l', type=int, default=50)
+	parser.add_argument('--max-path-length', '-l', type=int, default=40)
 	parser.add_argument('--num-rollouts', '-n', type=int, default=10)
 	parser.add_argument('--num-iterations', type=int, default=50)
-	parser.add_argument('--mb_size', type=int, default=64)
+	parser.add_argument('--mb_size', type=int, default=4)
 	parser.add_argument('--plot_freq', type=int, default=5)
 
 	args = parser.parse_args()
@@ -123,7 +123,7 @@ def main(args):
 				'mean_final_success': []}
 
 
-	name = "dagger_tensor_xyz"
+	name = "dagger_tensor_xyz01"
 	log_dir_ = os.path.join("logs_mujoco_offline", name)
 	set_writer = tf.summary.FileWriter(log_dir_ + '/train', None)
 
@@ -143,8 +143,19 @@ def main(args):
 	act = tfu.get_placeholder(name="act",
 							dtype=tf.float32,
 							shape=[None, policy.act_dim])
+
+	global_step1 = tf.Variable(0, trainable=False)
+
+
+	lr = tf.train.exponential_decay(learning_rate = 0.002,
+									global_step = global_step1,
+									decay_steps = 1000,
+									decay_rate = 0.96,
+									staircase=True)
+
+
 	loss = tf.reduce_mean(tf.squared_difference(policy.ac, act))
-	opt = tf.train.AdamOptimizer().minimize(loss)
+	opt = tf.train.AdamOptimizer(learning_rate=lr).minimize(loss,global_step=global_step1)
 
 	
 
@@ -197,16 +208,18 @@ def main(args):
 		# print('\nIteration {} :'.format(i+1))
 		# Parse dataset for supervised learning
 		num_samples = data['state_observation'].shape[0]
-		print(num_samples)
+		print('num_samples',num_samples)
 		idx = np.arange(num_samples)
 		np.random.shuffle(idx)
 		for j in range(num_samples // args.mb_size):
-			global_step = global_step + 1
 			np.random.shuffle(idx)
+			# import ipdb;ipdb.set_trace()
 			feat_train, goal_obs_train = policy.train_process_observation(data, idx[:args.mb_size])
 			act_train = data['actions'][idx[:args.mb_size]]
 			loss, _ = session.run([loss_op,opt], feed_dict={crop:feat_train, goal_obs:goal_obs_train, act:act_train})
+			# session.run([policy.ac], feed_dict={crop:feat_train, goal_obs:goal_obs_train, act:act_train})
 			set_writer.add_summary(loss, global_step=global_step)
+			global_step = global_step + 1
 		
 		# Perform rollouts
 		roll, plot_data = rollout(env,
