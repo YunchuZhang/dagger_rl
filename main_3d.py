@@ -20,7 +20,7 @@ import tf_utils as tfu
 from multiworld.core.image_env import ImageEnv
 from multiworld.envs.mujoco.cameras import init_multiple_cameras
 from policies.tensor_xyz_policy import Tensor_XYZ_Policy
-from rollouts import rollout, append_paths
+from rollouts import rollout, append_paths,test
 from softlearning.environments.gym.wrappers import NormalizeActionWrapper
 
 import matplotlib as mpl
@@ -91,8 +91,8 @@ def parse_args():
 	parser.add_argument('--max-path-length', '-l', type=int, default=40)
 	parser.add_argument('--num-rollouts', '-n', type=int, default=10)
 	parser.add_argument('--num-iterations', type=int, default=50)
-	parser.add_argument('--mb_size', type=int, default=4)
-	parser.add_argument('--plot_freq', type=int, default=5)
+	parser.add_argument('--mb_size', type=int, default=8)
+	parser.add_argument('--plot_freq', type=int, default=10)
 
 	args = parser.parse_args()
 
@@ -123,8 +123,9 @@ def main(args):
 				'mean_final_success': []}
 
 
-	name = "dagger_tensor_xyz01"
+	name = "dagger_tensor_xyztest"
 	log_dir_ = os.path.join("logs_mujoco_offline", name)
+	checkpoint_dir_ = os.path.join("checkpoints", name)
 	set_writer = tf.summary.FileWriter(log_dir_ + '/train', None)
 
 	## Define expert
@@ -146,11 +147,14 @@ def main(args):
 
 	global_step1 = tf.Variable(0, trainable=False)
 
+	# lr 0.002
+	# decay 0.96 0.8
 
-	lr = tf.train.exponential_decay(learning_rate = 0.002,
+
+	lr = tf.train.exponential_decay(learning_rate = 0.0005,
 									global_step = global_step1,
-									decay_steps = 1000,
-									decay_rate = 0.96,
+									decay_steps = 10000,
+									decay_rate = 0.4,
 									staircase=True)
 
 
@@ -177,6 +181,19 @@ def main(args):
 	# seperate with map_3d summary
 	loss_op = tf.summary.scalar('loss', loss)
 
+	min_return = tf.placeholder(dtype=tf.float32, shape=None, name="min_return")
+	max_return = tf.placeholder(dtype=tf.float32, shape=None, name="max_return")
+	mean_return = tf.placeholder(dtype=tf.float32, shape=None, name="mean_return")
+	mean_final_success = tf.placeholder(dtype=tf.float32, shape=None, name="mean_final_success")
+
+	with tf.variable_scope("Training_process"):
+		min_return_op = tf.summary.scalar('min_return', min_return)
+		max_return_op = tf.summary.scalar('max_return', max_return)
+		mean_return_op = tf.summary.scalar('mean_return', mean_return)
+		mean_final_success_op = tf.summary.scalar('mean_final_success', mean_final_success)
+
+
+	saver = tf.train.Saver()
 	# Load expert policy
 	pickle_path = os.path.join(args.checkpoint_path, 'checkpoint.pkl')
 	with open(pickle_path, 'rb') as f:
@@ -229,10 +246,20 @@ def main(args):
 				expert_policy)
 		data = append_paths(data, roll)
 
+		minro,maxro,meanro,meanfo= session.run([min_return_op,max_return_op,mean_return_op,mean_final_success_op],feed_dict=\
+			{min_return:plot_data['min_return'],max_return:plot_data['max_return'],mean_return:plot_data['mean_return'],\
+			mean_final_success:plot_data['mean_final_success']})
+		set_writer.add_summary(minro,global_step=global_step)
+		set_writer.add_summary(maxro,global_step=global_step)
+		set_writer.add_summary(meanro,global_step=global_step)
+		set_writer.add_summary(meanfo,global_step=global_step)
+
 		for key in plotters.keys(): plotters[key].append(plot_data[key])
 
-		if i%args.plot_freq==0:
-			plotting_data(plotters)
+		if i%50==0:
+			savemodel(saver, session, checkpoint_dir_, i)
+			# plotting_data(plotters)
+
 
 	plotting_data(plotters)
 
@@ -258,6 +285,26 @@ def plotting_data(plotters):
 	plt.savefig('metrics.png', dpi=300)
 	plt.close()
 
+def savemodel(saver, sess, checkpoint_dir, step):
+	model_name = "minuet.model"
+	if not os.path.exists(checkpoint_dir):
+		os.makedirs(checkpoint_dir)
+	saver.save(sess,
+			   os.path.join(checkpoint_dir, model_name),
+			   global_step=step)
+	print(("Saved a checkpoint: %s/%s-%d" % (checkpoint_dir, model_name, step)))
+
+
+
 if __name__ == '__main__':
 	args = parse_args()
 	main(args)
+	# _, env = load_expert.get_policy(args.checkpoint_path)
+	# _,plot_data = test(env,args.num_rollouts,args.max_path_length)
+	# plotting_data(plot_data)
+
+
+
+
+
+

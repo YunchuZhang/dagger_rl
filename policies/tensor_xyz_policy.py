@@ -95,6 +95,7 @@ class Tensor_XYZ_Policy:
 						"policyfinal",
 						weight_init=tfu.normc_initializer(0.01))
 
+
 		self.ac = action
 		self._act = tfu.function([goal_obs, crop], self.ac)
 
@@ -118,7 +119,7 @@ class Tensor_XYZ_Policy:
 		return featRs, ob_tensor
 
 	def process_observation(self, ob):
-		ob = {key: np.repeat(np.expand_dims(ob[key], axis=0),4, axis = 0) for key in ob.keys()}
+		ob = {key: np.repeat(np.expand_dims(ob[key], axis=0),8, axis = 0) for key in ob.keys()}
 		featRs = self.map3D.forward(ob)
 
 		ob_tensor = np.hstack([ob['state_desired_goal'],ob['state_observation']])
