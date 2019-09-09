@@ -90,9 +90,10 @@ def parse_args():
 						help='Path to some initial expert data collected.')
 	parser.add_argument('--max-path-length', '-l', type=int, default=40)
 	parser.add_argument('--num-rollouts', '-n', type=int, default=10)
+	parser.add_argument('--test-num-rollouts', '-tn', type=int, default=20)
 	parser.add_argument('--num-iterations', type=int, default=50)
 	parser.add_argument('--mb_size', type=int, default=8)
-	parser.add_argument('--plot_freq', type=int, default=10)
+	parser.add_argument('--checkpoint_freq', type=int, default=50)
 
 	args = parser.parse_args()
 
@@ -144,49 +145,47 @@ def main(args):
 	act = tfu.get_placeholder(name="act",
 							dtype=tf.float32,
 							shape=[None, policy.act_dim])
+	min_return = tfu.get_placeholder(dtype=tf.float32, shape=None, name="min_return")
+	max_return = tfu.get_placeholder(dtype=tf.float32, shape=None, name="max_return")
+	mean_return = tfu.get_placeholder(dtype=tf.float32, shape=None, name="mean_return")
+	mean_final_success = tfu.get_placeholder(dtype=tf.float32, shape=None, name="mean_final_success")
 
-	global_step1 = tf.Variable(0, trainable=False)
+	step = tf.Variable(0, trainable=False)
 
 	# lr 0.002
 	# decay 0.96 0.8
 
-
 	lr = tf.train.exponential_decay(learning_rate = 0.0005,
-									global_step = global_step1,
+									global_step = step,
 									decay_steps = 10000,
 									decay_rate = 0.4,
 									staircase=True)
 
+    # Exclude map3D network from gradient computation
+    freeze_patterns = []
+    freeze_patterns.append("feat")
 
 	loss = tf.reduce_mean(tf.squared_difference(policy.ac, act))
-	opt = tf.train.AdamOptimizer(learning_rate=lr).minimize(loss,global_step=global_step1)
-
-	
+    train_vars = tf.contrib.framework.filter_variables( tf.trainable_variables(),
+                                                        exclude_patterns=freeze_patterns)
+	opt = tf.train.AdamOptimizer(learning_rate=lr).minimize(loss,
+															var_list=train_vars,
+                                                            global_step=step)
 
 	# Start session
 	session = tfu.make_session(num_cpu=40)
 	session.__enter__()
-	# session.run(tf.global_variables_initializer())
 
 	# Load map3D network
-	freeze_patterns = []
-	freeze_patterns.append("feat")
-
 	freeze_list = tf.contrib.framework.filter_variables(
 		tf.trainable_variables(),
 		include_patterns=freeze_patterns)
-
 
 	policy.map3D.finalize_graph()
 	# seperate with map_3d summary
 	loss_op = tf.summary.scalar('loss', loss)
 
-	min_return = tf.placeholder(dtype=tf.float32, shape=None, name="min_return")
-	max_return = tf.placeholder(dtype=tf.float32, shape=None, name="max_return")
-	mean_return = tf.placeholder(dtype=tf.float32, shape=None, name="mean_return")
-	mean_final_success = tf.placeholder(dtype=tf.float32, shape=None, name="mean_final_success")
-
-	with tf.variable_scope("Training_process"):
+	with tf.variable_scope("Policy performance"):
 		min_return_op = tf.summary.scalar('min_return', min_return)
 		max_return_op = tf.summary.scalar('max_return', max_return)
 		mean_return_op = tf.summary.scalar('mean_return', mean_return)
@@ -222,7 +221,6 @@ def main(args):
 	global_step = 0
 
 	for i in tqdm.tqdm(range(args.num_iterations)):
-		# print('\nIteration {} :'.format(i+1))
 		# Parse dataset for supervised learning
 		num_samples = data['state_observation'].shape[0]
 		print('num_samples',num_samples)
@@ -230,14 +228,12 @@ def main(args):
 		np.random.shuffle(idx)
 		for j in range(num_samples // args.mb_size):
 			np.random.shuffle(idx)
-			# import ipdb;ipdb.set_trace()
 			feat_train, goal_obs_train = policy.train_process_observation(data, idx[:args.mb_size])
 			act_train = data['actions'][idx[:args.mb_size]]
 			loss, _ = session.run([loss_op,opt], feed_dict={crop:feat_train, goal_obs:goal_obs_train, act:act_train})
-			# session.run([policy.ac], feed_dict={crop:feat_train, goal_obs:goal_obs_train, act:act_train})
 			set_writer.add_summary(loss, global_step=global_step)
 			global_step = global_step + 1
-		
+
 		# Perform rollouts
 		roll, plot_data = rollout(env,
 				args.num_rollouts,
@@ -256,14 +252,52 @@ def main(args):
 
 		for key in plotters.keys(): plotters[key].append(plot_data[key])
 
-		if i%50==0:
+		if (i+1)%args.checkpoint_freq==0:
 			savemodel(saver, session, checkpoint_dir_, i)
-			# plotting_data(plotters)
-
 
 	plotting_data(plotters)
+	session.__exit__()
+	session.close()
 
-	# tf.get_default_session().close()
+
+def test(args):
+
+	## Define environment
+	if args.mesh is not None: change_env_to_use_correct_mesh(args.mesh)
+
+	# Dictionary of values to plot
+	plotters = {'min_return': [],
+				'max_return': [],
+				'mean_return': [],
+				'mean_final_success': []}
+
+	# Create environment
+	_, env = load_expert.get_policy(args.checkpoint_path)
+
+	## Define policy network
+	policy = Tensor_XYZ_Policy("dagger_tensor_xyz", env)
+
+	# Start session
+	session = tfu.make_session(num_cpu=40)
+	session.__enter__()
+
+	policy.map3D.finalize_graph()
+
+	checkpoint_path = "/home/robertmu/DAGGER_discovery/checkpoints/dagger_tensor_xyz02"
+	saver = tf.train.import_meta_graph(checkpoint_path+ "/minuet.model-0"+".meta")
+	saver.restore(session,tf.train.latest_checkpoint(checkpoint_path))
+
+	# Rollout policy
+	_, stats = rollout(env,
+			args.test_num_rollouts,
+			args.max_path_length,
+			policy)
+
+	for key, value in stats:
+		print("{} : {}".format(key, value))
+	
+	session.__exit__()
+	session.close()
 
 def plotting_data(plotters):
 
@@ -302,9 +336,3 @@ if __name__ == '__main__':
 	# _, env = load_expert.get_policy(args.checkpoint_path)
 	# _,plot_data = test(env,args.num_rollouts,args.max_path_length)
 	# plotting_data(plot_data)
-
-
-
-
-
-

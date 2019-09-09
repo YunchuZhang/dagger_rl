@@ -19,9 +19,6 @@ def get_environment_from_params_custom(environment_params):
       environment_kwargs_gym.pop("observation_keys")
     env = gym.make(f"{domain}-{task}",**environment_kwargs_gym)
 
-
-
-
     camera_space={'dist_low': 0.7,'dist_high': 1.5,'angle_low': 0,'angle_high': 180,'elev_low': -180,'elev_high': -90}
 
     env_n = ImageEnv(
