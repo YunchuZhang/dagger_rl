@@ -90,7 +90,7 @@ def parse_args():
 						help='Path to some initial expert data collected.')
 	parser.add_argument('--max-path-length', '-l', type=int, default=40)
 	parser.add_argument('--num-rollouts', '-n', type=int, default=10)
-	parser.add_argument('--test-num-rollouts', '-tn', type=int, default=20)
+	parser.add_argument('--test-num-rollouts', '-tn', type=int, default=10)
 	parser.add_argument('--num-iterations', type=int, default=50)
 	parser.add_argument('--mb_size', type=int, default=8)
 	parser.add_argument('--checkpoint_freq', type=int, default=50)
@@ -124,7 +124,7 @@ def main(args):
 				'mean_final_success': []}
 
 
-	name = "dagger_tensor_xyztest"
+	name = "dagger_tensor_xyztestload"
 	log_dir_ = os.path.join("logs_mujoco_offline", name)
 	checkpoint_dir_ = os.path.join("checkpoints", name)
 	set_writer = tf.summary.FileWriter(log_dir_ + '/train', None)
@@ -283,9 +283,16 @@ def test(args):
 
 	policy.map3D.finalize_graph()
 
-	checkpoint_path = "/home/robertmu/DAGGER_discovery/checkpoints/dagger_tensor_xyz02"
-	saver = tf.train.import_meta_graph(checkpoint_path+ "/minuet.model-0"+".meta")
-	saver.restore(session,tf.train.latest_checkpoint(checkpoint_path))
+	checkpoint_path = "/home/robertmu/DAGGER_discovery/checkpoints/dagger_tensor_xyztest2"
+	# saver = tf.train.import_meta_graph(checkpoint_path+ "/minuet.model-0"+".meta")
+	ckpt = tf.train.get_checkpoint_state(checkpoint_path)
+	saver = tf.train.Saver()
+	if ckpt and ckpt.model_checkpoint_path:
+		ckpt_name = os.path.basename(ckpt.model_checkpoint_path)
+		print(("...found %s " % ckpt.model_checkpoint_path))
+		saver.restore(session, os.path.join(checkpoint_path, ckpt_name))
+	else:
+		print("...ain't no full checkpoint here!")
 
 	# Rollout policy
 	_, stats = rollout(env,
@@ -293,10 +300,11 @@ def test(args):
 			args.max_path_length,
 			policy)
 
-	for key, value in stats:
-		print("{} : {}".format(key, value))
-	
-	session.__exit__()
+
+	for key, value in enumerate(stats):
+		print("{} : {}".format(value, stats[value]))
+
+
 	session.close()
 
 def plotting_data(plotters):
