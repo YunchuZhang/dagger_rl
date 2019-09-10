@@ -2,8 +2,8 @@ import numpy as np
 from softlearning.policies.gaussian_policy import GaussianPolicy
 import sys
 import getpass
-sys.path.append("/home/{}".format(getpass.getuser()))
-from discovery.backend.mujoco_online_inputs import get_inputs
+# sys.path.append("/home/{}".format(getpass.getuser()))
+# from discovery.backend.mujoco_online_inputs import get_inputs
 import tensorflow as tf
 import tf_utils as tfu
 EXPERT_KEYS = ['observation_with_orientation',
@@ -116,7 +116,6 @@ def test(env,num_rollouts,path_length):
 				break
 
 		assert len(infos) == t + 1
-		print("total_steps",t+1)
 
 		path = {key: np.stack(path[key], axis=0) for key in env_keys}
 		path['actions'] = np.stack(actions, axis=0)
@@ -194,13 +193,12 @@ def rollout(env,
 			R += reward
 
 			if terminal:
-				
+
 				if isinstance(policy, GaussianPolicy):
 					policy.reset()
 				break
 
 		assert len(infos) == t + 1
-		print("total_steps",t+1)
 
 
 		path = {key: np.stack(path[key], axis=0) for key in env_keys}

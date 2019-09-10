@@ -136,12 +136,12 @@ def main(args):
 	policy = Tensor_XYZ_Policy("dagger_tensor_xyz", env)
 
 	## Define DAGGER loss
-	goal_obs = tfu.get_placeholder(name="goal_obs",
-							dtype=tf.float32,
-							shape=[None, policy.state_obs_dim + policy.state_desired_dim])
-	crop = tfu.get_placeholder(name="crop",
-							dtype=tf.float32,
-							shape=[None, 16, 16, 8, 32])
+	# goal_obs = tfu.get_placeholder(name="goal_obs",
+	# 						dtype=tf.float32,
+	# 						shape=[None, policy.state_obs_dim + policy.state_desired_dim])
+	# crop = tfu.get_placeholder(name="crop",
+	# 						dtype=tf.float32,
+	# 						shape=[None, 16, 16, 8, 32])
 	act = tfu.get_placeholder(name="act",
 							dtype=tf.float32,
 							shape=[None, policy.act_dim])
@@ -161,16 +161,16 @@ def main(args):
 									decay_rate = 0.4,
 									staircase=True)
 
-    # Exclude map3D network from gradient computation
-    freeze_patterns = []
-    freeze_patterns.append("feat")
+	# Exclude map3D network from gradient computation
+	freeze_patterns = []
+	freeze_patterns.append("feat")
 
 	loss = tf.reduce_mean(tf.squared_difference(policy.ac, act))
-    train_vars = tf.contrib.framework.filter_variables( tf.trainable_variables(),
-                                                        exclude_patterns=freeze_patterns)
+	train_vars = tf.contrib.framework.filter_variables( tf.trainable_variables(),
+														exclude_patterns=freeze_patterns)
 	opt = tf.train.AdamOptimizer(learning_rate=lr).minimize(loss,
 															var_list=train_vars,
-                                                            global_step=step)
+															global_step=step)
 
 	# Start session
 	session = tfu.make_session(num_cpu=40)
@@ -185,7 +185,7 @@ def main(args):
 	# seperate with map_3d summary
 	loss_op = tf.summary.scalar('loss', loss)
 
-	with tf.variable_scope("Policy performance"):
+	with tf.variable_scope("policy_perf"):
 		min_return_op = tf.summary.scalar('min_return', min_return)
 		max_return_op = tf.summary.scalar('max_return', max_return)
 		mean_return_op = tf.summary.scalar('mean_return', mean_return)
@@ -223,16 +223,16 @@ def main(args):
 	for i in tqdm.tqdm(range(args.num_iterations)):
 		# Parse dataset for supervised learning
 		num_samples = data['state_observation'].shape[0]
-		print('num_samples',num_samples)
 		idx = np.arange(num_samples)
 		np.random.shuffle(idx)
 		for j in range(num_samples // args.mb_size):
 			np.random.shuffle(idx)
-			feat_train, goal_obs_train = policy.train_process_observation(data, idx[:args.mb_size])
+			feed = policy.train_process_observation(data, idx[:args.mb_size])
 			act_train = data['actions'][idx[:args.mb_size]]
-			loss, _ = session.run([loss_op,opt], feed_dict={crop:feat_train, goal_obs:goal_obs_train, act:act_train})
-			set_writer.add_summary(loss, global_step=global_step)
-			global_step = global_step + 1
+			feed.update({act:act_train})
+			loss, _ = session.run([loss_op,opt], feed_dict=feed)
+		set_writer.add_summary(loss, global_step=global_step)
+		global_step = global_step + 1
 
 		# Perform rollouts
 		roll, plot_data = rollout(env,
@@ -333,6 +333,7 @@ def savemodel(saver, sess, checkpoint_dir, step):
 if __name__ == '__main__':
 	args = parse_args()
 	main(args)
+	test(args)
 	# _, env = load_expert.get_policy(args.checkpoint_path)
 	# _,plot_data = test(env,args.num_rollouts,args.max_path_length)
 	# plotting_data(plot_data)

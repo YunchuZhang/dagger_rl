@@ -7,6 +7,7 @@ import sys
 import getpass
 sys.path.append("/home/{}".format(getpass.getuser()))
 from discovery.test_model_loading import MUJOCO_ONLINE
+import discovery.backend.mujoco_online_inputs as mujoco_online_inputs 
 
 
 class Tensor_XYZ_Policy:
@@ -53,13 +54,15 @@ class Tensor_XYZ_Policy:
 	def build(self, hidden_sizes):
 
 		# CREATE TWO OBSERVATION PLACEHOLDERS : (1) for 3D tensor, (2) for other vectors
-		goal_obs = tfu.get_placeholder(name="goal_obs",
+		self.goal_obs = tfu.get_placeholder(name="goal_obs",
 							dtype=tf.float32,
-							shape=[None, self.state_obs_dim + self.state_desired_dim])
+							shape=[8, self.state_obs_dim + self.state_desired_dim])
 
-		crop = tfu.get_placeholder(name="crop",
-							dtype=tf.float32,
-							shape=[None, 16, 16, 8, 32])
+		graph = tf.get_default_graph()
+		crop = graph.get_tensor_by_name("crop_result:0")
+		# crop = tfu.get_placeholder(name="crop",
+		# 					dtype=tf.float32,
+		# 					shape=[None, 16, 16, 8, 32])
 
 		bn = True
 
@@ -82,7 +85,7 @@ class Tensor_XYZ_Policy:
 			net = tf.layers.flatten(net)
 
 
-		out = tf.concat([net, goal_obs], -1)
+		out = tf.concat([net, self.goal_obs], -1)
 		for i, hidden_size in enumerate(hidden_sizes):
 
 			out = tf.nn.tanh(tfu.dense(out,
@@ -97,37 +100,47 @@ class Tensor_XYZ_Policy:
 
 
 		self.ac = action
-		self._act = tfu.function([goal_obs, crop], self.ac)
+		# self._act = tfu.function([goal_obs, crop], self.ac)
 
 		self.flatvars = tfu.GetFlat(self.get_trainable_variables())
 		self.unflatvars = tfu.SetFromFlat(self.get_trainable_variables())
 
 	def train_process_observation(self, data, idx):
-		# featRs = []
-		# for i in range(0,len(idx),64):
-		# 	datas = {key: data[key][idx[i:i+64]] for key in self.KEYS}
-		# 	featRs.append(self.map3D.forward(datas))
-
-		# featRs = np.vstack(featRs)
 
 		data = {key: data[key][idx] for key in self.KEYS}
-		featRs = self.map3D.forward(data)
 		ob_tensor = np.hstack([data['state_desired_goal'],
 								data['state_observation']])
-
-		#assert (featRs.shape[-1] + ob_tensor.shape[-1]) == self.obs_dim
-		return featRs, ob_tensor
+		batch_dict = mujoco_online_inputs.get_inputs(data, self.map3D.puck_z)
+		feed = {}
+		feed.update({self.map3D.rgb_camXs: batch_dict['rgb_camXs']})
+		feed.update({self.map3D.xyz_camXs: batch_dict['xyz_camXs']})
+		feed.update({self.map3D.pix_T_cams: batch_dict['pix_T_cams']})
+		feed.update({self.map3D.origin_T_camRs: batch_dict['origin_T_camRs']})
+		feed.update({self.map3D.origin_T_camXs: batch_dict['origin_T_camXs']})
+		feed.update({self.map3D.puck_xyz_camRs: batch_dict['puck_xyz_camRs']})
+		feed.update({self.goal_obs: ob_tensor})
+		
+		return feed
 
 	def process_observation(self, ob):
-		ob = {key: np.repeat(np.expand_dims(ob[key], axis=0),8, axis = 0) for key in ob.keys()}
-		featRs = self.map3D.forward(ob)
-
+		ob = {key: np.repeat(np.expand_dims(ob[key], axis=0), 8, axis=0) for key in ob.keys()}
 		ob_tensor = np.hstack([ob['state_desired_goal'],ob['state_observation']])
-		return featRs, ob_tensor
+		batch_dict = mujoco_online_inputs.get_inputs(ob, self.map3D.puck_z)
+		feed = {}
+		feed.update({self.map3D.rgb_camXs: batch_dict['rgb_camXs']})
+		feed.update({self.map3D.xyz_camXs: batch_dict['xyz_camXs']})
+		feed.update({self.map3D.pix_T_cams: batch_dict['pix_T_cams']})
+		feed.update({self.map3D.origin_T_camRs: batch_dict['origin_T_camRs']})
+		feed.update({self.map3D.origin_T_camXs: batch_dict['origin_T_camXs']})
+		feed.update({self.map3D.puck_xyz_camRs: batch_dict['puck_xyz_camRs']})
+		feed.update({self.goal_obs: ob_tensor})
+		return feed
 
 	def act(self, ob):
-		crop, ob = self.process_observation(ob)
-		ac = self._act(ob,crop)
+		feed = self.process_observation(ob)
+		# ac = self._act(ob,crop)
+		sess = tf.get_default_session()
+		ac = sess.run(self.ac, feed_dict=feed)
 		return ac[0]
 
 	def get_variables(self, scope=None):

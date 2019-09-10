@@ -151,14 +151,14 @@ def main(args):
 					args.num_rollouts,
 					args.max_path_length,
 					expert_policy)
-		np.save('expert_data_{}.npy'.format(args.env), data)
+		# np.save('expert_data_{}.npy'.format(args.env), data)
 	else:
 		data = np.load(args.expert_data_path, allow_pickle=True).item()
 		roll, _ = rollout(env,
 				args.num_rollouts,
 				args.max_path_length,
 				expert_policy)
-
+	exit()
 	## Start training
 
 	# Start for loop
