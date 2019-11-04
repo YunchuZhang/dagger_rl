@@ -50,19 +50,27 @@ def change_env_to_use_correct_mesh(mesh):
 	physics_dict["car4"] =  ["0.8", ".0000000017 .0000000005 .0000000019", "1.2 1.2 .00001" ]
 	physics_dict["car5"] =  ["2.0", ".0000000017 .0000000005 .0000000019", "1.2 1.2 .00001" ]
 	physics_dict["boat"] =  ["17.0", ".00000002 .00000002 .00000001", "0.2 0.2 .0001" ]
-	physics_dict["bowl1"] =  ["0.1", ".00000002 .00000002 .00000001", "0.2 0.2 .0001" ]
-	physics_dict["bowl2"] =  ["0.3", ".00000002 .00000002 .00000001", "0.2 0.2 .0001" ]
+	physics_dict["bowl"] =  ["10", ".00000002 .00000002 .00000001", "0.2 0.2 .0001" ]
+	physics_dict["bowl2"] =  ["1", ".00002 .00002 .00001", "0.2 0.2 .0001" ]
 	physics_dict["bowl4"] =  ["0.7", ".00000002 .00000002 .00000001", "0.2 0.2 .0001" ]
 	physics_dict["hat1"] =  ["0.2", ".00000002 .00000002 .00000001", "0.2 0.2 .0001" ]
 	physics_dict["hat2"] =  ["0.4", ".00000002 .00000002 .00000001", "0.2 0.2 .0001" ]
 	physics_dict["mouse"] = ["2.7", ".00027 .00025 .00016", "1.5 0.5 .000001"]
-	physics_dict["book"] = ["12", ".00768 .01193 .00646", "3.5 2.5 .000001"]
+	physics_dict["book"] = ["10", ".00768 .01193 .00646", "3.5 2.5 .000001"]
 	physics_dict["coffee_mug"] = ["21", ".0007 .0002 .0007", "0.35 0.25 .000001"]
 	physics_dict["boat2"] =  ["6.0", ".00002 .00002 .00001", "0.2 0.2 .0001" ]
 	physics_dict["headphones"] =  ["3", ".0012 .0039 .0029", "0.7 0.4 .0001" ]
 	physics_dict["ball"] =  ["9", "0.000007 0.000007 0.000007", "0.0005 0.0004 .0001" ]
 	physics_dict["eyeglass"] =  ["2.5", "0.00016 0.00023 0.00008", "0.0005 0.0004 .0001" ]
 	physics_dict["plane"] =  ["5.5", "0.00016 0.00023 0.00008", "0.0005 0.0004 .0001" ]
+	physics_dict["hamet"] =  ["12.5", "0.00016 0.00023 0.00008", "0.005 0.004 .001" ]
+	physics_dict["clock"] =  ["3.5", "0.00016 0.00023 0.00008", "0.00005 0.00004 .00001" ]
+	physics_dict["skate"] =  ["12", "0.00016 0.00023 0.00008", "0.6 0.4 .0001" ]
+	physics_dict["bag1"] =  ["3", "0.00016 0.00023 0.00008", "0.005 0.004 .0001" ]
+	physics_dict["bag2"] =  ["8", "0.00016 0.00023 0.00008", "0.01 0.01 .0001" ]
+	physics_dict["keyboard"] =  ["5", "0.00016 0.00023 0.00008", "0.002 0.004 .0001" ]
+	physics_dict["knife"] =  ["8", "0.00016 0.00023 0.00008", "0.0005 0.0004 .0001" ]
+	physics_dict["pillow"] =  ["6", "0.00016 0.00023 0.00008", "0.5 0.4 .0001" ]
 
 	#set parameters
 	[x.attrib for x in root.iter('geom')][0]['mass'] = physics_dict[mesh][0]
@@ -110,7 +118,7 @@ def parse_args():
 def main(args):
 
 	## Define environment
-	expert_list = ['mug1','mouse','mug2','headphones','ball','eyeglass','coffee_mug','car3','boat2']
+	expert_list = ['mug1','mouse','mug2','headphones','eyeglass','coffee_mug','car3','book','hamet','plane','pillow']
 	if args.mesh is not None: change_env_to_use_correct_mesh(args.mesh)
 
 	# env = gym.make(args.env)
@@ -210,7 +218,7 @@ def main(args):
 		## Define expert
 		checkpoint_path = '/projects/katefgroup/yunchu/{}'.format(mesh)+'48/checkpoint_1350/'
 		if mesh =='mug2':
-			checkpoint_path = '/projects/katefgroup/yunchu/{}'.format(mesh)+'48/checkpoint_1200/'
+			checkpoint_path = '/projects/katefgroup/yunchu/{}'.format(mesh)+'48/checkpoint_1450/'
 		expert_policy, env = load_expert.get_policy(checkpoint_path)
 		# Load expert policy
 		pickle_path = os.path.join(checkpoint_path, 'checkpoint.pkl')
@@ -272,7 +280,7 @@ def main(args):
 			## Define expert
 			checkpoint_path = '/projects/katefgroup/yunchu/{}'.format(mesh)+'48/checkpoint_1350/'
 			if mesh =='mug2':
-				checkpoint_path = '/projects/katefgroup/yunchu/{}'.format(mesh)+'48/checkpoint_1200/'
+				checkpoint_path = '/projects/katefgroup/yunchu/{}'.format(mesh)+'48/checkpoint_1450/'
 			expert_policy, env = load_expert.get_policy(checkpoint_path)
 			# Load expert policy
 			pickle_path = os.path.join(checkpoint_path, 'checkpoint.pkl')
