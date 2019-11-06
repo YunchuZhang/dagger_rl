@@ -91,7 +91,7 @@ def rollout(env,
 		observation_converter = lambda x: x
 
 	if expert_policy:
-		assert str(policy).find('DDPG')!=-1
+		assert str(expert_policy).find('DDPG')!=-1
 		expert_actor = expert_policy.step
 
 	paths = []
@@ -148,11 +148,9 @@ def rollout(env,
 				break
 
 		assert len(infos) == t + 1
-
-
 		path = {key: np.stack(path[key], axis=0) for key in env_keys}
 		path['actions'] = np.stack(actions, axis=0)
-		path['terminals'] = np.stack(terminals, axis=0)
+		path['terminals'] = np.stack(terminals, axis=0).reshape(-1,1)
 		path['obj_sizes'] = np.stack(obj_sizes, axis=0)
 		path['puck_zs'] = np.stack(puck_zs, axis=0).reshape(-1,1)
 		if isinstance(policy, GaussianPolicy) and len(path['terminals']) >= path_length:
