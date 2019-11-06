@@ -16,15 +16,16 @@ EXPERT_KEYS = ['observation_with_orientation',
 				'proprio_observation',
 				'proprio_desired_goal',
 				'proprio_achieved_goal']
-short_keys = ['observation_with_orientation', 
+short_keys = [	'observation',
+				'observation_with_orientation', 
 				'desired_goal', 
 				'achieved_goal', 
-				'state_observation', 
-				'state_desired_goal', 
-				'state_achieved_goal', 
-				'proprio_observation', 
-				'proprio_desired_goal', 
-				'proprio_achieved_goal', 
+				# 'state_observation', 
+				# 'state_desired_goal', 
+				# 'state_achieved_goal', 
+				# 'proprio_observation', 
+				# 'proprio_desired_goal', 
+				# 'proprio_achieved_goal', 
 				'image_observation', 
 				# 'image_desired_goal', 
 				# 'image_achieved_goal', 
@@ -63,89 +64,6 @@ def return_stats(rewards, count_infos):
 			'mean_return': np.mean(rewards),
 			'mean_final_success': np.mean(count_infos)}
 
-
-
-def test(env,num_rollouts,path_length):
-
-	tf.reset_default_graph()
-	session1 = tfu.make_session(num_cpu=40)
-	session1.__enter__()
-
-	session1.run(tf.global_variables_initializer())
-
-
-	checkpoint_path = "/home/robertmu/DAGGER_discovery/checkpoints/dagger_tensor_xyz02"
-	saver = tf.train.import_meta_graph(checkpoint_path+ "/minuet.model-0"+".meta")
-	#print("i am reloading", tf.train.latest_checkpoint(checkpoint_path))
-	saver.restore(session1,tf.train.latest_checkpoint(checkpoint_path))
-
-	env_keys = env.observation_space.spaces.keys()
-	observation_converter = lambda x: x
-
-	paths = []
-	rewards = []
-	count_infos = []
-	while len(paths) < (num_rollouts):
-		import ipdb;ipdb.set_trace()
-
-		t = 0
-		path = {key: [] for key in env_keys}
-		images = []
-		infos = []
-		observations = []
-		actions = []
-		terminals = []
-		observation = env.reset()
-		R = 0
-		for t in range(path_length):
-			observation = observation_converter(observation)
-			ob = observation
-			ob = {key: np.repeat(np.expand_dims(ob[key], axis=0),8, axis = 0) for key in ob.keys()}
-			puck_z = env._env.env.init_puck_z + \
-				env._env.env.sim.model.geom_pos[env._env.env.sim.model.geom_name2id('puckbox')][-1]
-			batch_dict = get_inputs(ob,puck_z)
-			goal_obs_train = np.hstack([ob['state_desired_goal'],ob['state_observation']])
-
-			feed = {}
-
-			feed.update({policy.rgb_camXs: batch_dict['rgb_camXs']})
-			feed.update({policy.xyz_camXs: batch_dict['xyz_camXs']})
-			feed.update({policy.pix_T_cams: batch_dict['pix_T_cams']})
-			feed.update({policy.origin_T_camRs: batch_dict['origin_T_camRs']})
-			feed.update({policy.origin_T_camXs: batch_dict['origin_T_camXs']})
-			feed.update({policy.puck_xyz_camRs: batch_dict['puck_xyz_camRs']})
-			feed.update({goal_obs: goal_obs_train})
-
-			action = session.run([policy.ac], feed_dict=feed)
-
-			observation, reward, terminal, info = env.step(action)
-
-			for key in env_keys:
-				path[key].append(observation[key])
-			actions.append(action)
-			terminals.append(terminal)
-
-			infos.append(info)
-			R += reward
-
-			if terminal:
-				break
-
-		assert len(infos) == t + 1
-
-		path = {key: np.stack(path[key], axis=0) for key in env_keys}
-		path['actions'] = np.stack(actions, axis=0)
-		path['terminals'] = np.stack(terminals, axis=0)
-		if isinstance(policy, GaussianPolicy) and len(path['terminals']) >= path_length:
-			continue
-		elif not isinstance(policy, GaussianPolicy) and len(path['terminals'])==1:
-			continue
-		rewards.append(R)
-		count_infos.append(infos[-1]['puck_success'])
-		paths.append(path)
-
-	return _clean_paths(paths), return_stats(rewards, count_infos)
-
 def rollout(env,
 			num_rollouts,
 			path_length,
@@ -154,27 +72,27 @@ def rollout(env,
 			mesh = None):
 	# env_keys = env.observation_space.spaces.keys()
 	env_keys = short_keys
-	obj_size = env._env.env.sim.model.geom_size[env._env.env.sim.model.geom_name2id('puckbox')]
+	obj_size = env.sim.model.geom_size[env.sim.model.geom_name2id('puckbox')]
 	obj_size = 2 * obj_size
-	puck_z = env._env.env.init_puck_z + \
-			env._env.env.sim.model.geom_pos[env._env.env.sim.model.geom_name2id('puckbox')][-1]
+	puck_z = env.init_puck_z + \
+			env.sim.model.geom_pos[env.sim.model.geom_name2id('puckbox')][-1]
 
 	if mesh =='mug2' or mesh == 'mouse' or mesh == 'coffee_mug':
 		obj_size = np.repeat(np.max(obj_size),3)
 
-	# Check instance for softlearning
-	# import ipdb;ipdb.set_trace()
-	if isinstance(policy, GaussianPolicy):
-		actor = policy.actions_np
-		observation_converter = lambda x: convert_to_active_observation(x)
+	# Check instance for DDPG
+	# <baselines.her.ddpg.DDPG object at 0x7f70a8560e10>
+	if str(policy).find('DDPG')!=-1:
+		# actions, _, _, _ = model.step(obs)
+		# actor = policy.actions_np
+		actor = policy.step
 	else:
 		actor = policy.act
 		observation_converter = lambda x: x
 
 	if expert_policy:
-		assert isinstance(expert_policy, GaussianPolicy)
-		expert_actor = expert_policy.actions_np
-		exp_observation_converter = lambda x: convert_to_active_observation(x)
+		assert str(policy).find('DDPG')!=-1
+		expert_actor = expert_policy.step
 
 	paths = []
 	rewards = []
@@ -196,17 +114,16 @@ def rollout(env,
 		# img = img + 1
 		R = 0
 		for t in range(path_length):
-			observation = observation_converter(observation)
-			if isinstance(policy, GaussianPolicy):
-				action = actor(observation)[0]
+			# observation = observation_converter(observation)
+			if str(policy).find('DDPG')!=-1:
+				action,_,_,_ = actor(observation)
 			else:
 				action = actor(observation,obj_size,puck_z)
 			if expert_policy:
-				exp_observation = exp_observation_converter(observation)
-				expert_action = expert_actor(exp_observation)[0]
+				# exp_observation = exp_observation_converter(observation)
+				expert_action,_,_,_ = expert_actor(observation)
 			else:
 				expert_action = action
-			# print('action',action)
 			observation, reward, terminal, info = env.step(action)
 			# image = env.render(mode='rgb_array') #cv2 show image
 			# cv2.imwrite('store/'+'{}_'.format(mesh)+'{}.png'.format(img),image)
@@ -224,13 +141,13 @@ def rollout(env,
 			R += reward
 
 			if terminal:
+				print('episode_rew={}'.format(R))
 
 				if isinstance(policy, GaussianPolicy):
 					policy.reset()
 				break
 
 		assert len(infos) == t + 1
-		print('total_steps',t+1)
 
 
 		path = {key: np.stack(path[key], axis=0) for key in env_keys}

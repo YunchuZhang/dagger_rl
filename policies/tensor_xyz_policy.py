@@ -21,8 +21,8 @@ class Tensor_XYZ_Policy:
 		self.img_obs_dim = env.observation_space.spaces['image_observation'].shape
 		self.depth_obs_dim = env.observation_space.spaces['depth_observation'].shape
 		self.cam_obs_dim = env.observation_space.spaces['cam_info_observation'].shape
-		self.state_obs_dim = env.observation_space.spaces['state_observation'].shape[0]
-		self.state_desired_dim = env.observation_space.spaces['state_desired_goal'].shape[0]
+		self.state_obs_dim = env.observation_space.spaces['achieved_goal'].shape[0]
+		self.state_desired_dim = env.observation_space.spaces['desired_goal'].shape[0]
 		self.flatten_tensor_dim = 256  # Need to find a way to make this variable.
 
 		# self.obs_dim = self.flatten_tensor_dim + self.state_obs_dim + self.state_desired_dim
@@ -114,15 +114,15 @@ class Tensor_XYZ_Policy:
 		self.flatvars = tfu.GetFlat(self.get_trainable_variables())
 		self.unflatvars = tfu.SetFromFlat(self.get_trainable_variables())
 
-	def train_process_observation(self, data, idx, env):
+	def train_process_observation(self, data, idx):
 
 		# obj_size = env._env.env.sim.model.geom_size[env._env.env.sim.model.geom_name2id('puckbox')]
 		# obj_size = 2 * obj_size
 		# puck_z = env._env.env.init_puck_z + \
 		# 		env._env.env.sim.model.geom_pos[env._env.env.sim.model.geom_name2id('puckbox')][-1]
 		data = {key: data[key][idx] for key in data.keys()}
-		ob_tensor = np.hstack([data['state_desired_goal'],
-								data['state_observation']])
+		ob_tensor = np.hstack([data['desired_goal'],
+								data['achieved_goal']])
 		batch_dict = mujoco_online_inputs.get_inputs(data, data['puck_zs'])
 		feed = {}
 		feed.update({self.map3D.rgb_camXs: batch_dict['rgb_camXs']})
@@ -145,7 +145,7 @@ class Tensor_XYZ_Policy:
 		# 		env._env.env.sim.model.geom_pos[env._env.env.sim.model.geom_name2id('puckbox')][-1]
 
 		ob = {key: np.repeat(np.expand_dims(ob[key], axis=0), 8, axis=0) for key in ob.keys()}
-		ob_tensor = np.hstack([ob['state_desired_goal'],ob['state_observation']])
+		ob_tensor = np.hstack([ob['desired_goal'],ob['achieved_goal']])
 		batch_dict = mujoco_online_inputs.get_inputs(ob, np.repeat(puck_z,8))
 		feed = {}
 		feed.update({self.map3D.rgb_camXs: batch_dict['rgb_camXs']})

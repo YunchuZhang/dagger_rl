@@ -14,13 +14,13 @@ warnings.filterwarnings("ignore")
 import tensorflow as tf
 import multiworld
 import gym
-import load_expert
+import load_ddpg
 import tf_utils as tfu
 
 from multiworld.core.image_env import ImageEnv
 from multiworld.envs.mujoco.cameras import init_multiple_cameras
 from policies.tensor_xyz_policy import Tensor_XYZ_Policy
-from rollouts import rollout, append_paths,test
+from rollouts import rollout, append_paths
 from softlearning.environments.gym.wrappers import NormalizeActionWrapper
 
 import matplotlib as mpl
@@ -32,10 +32,11 @@ sns.set_style('whitegrid')
 multiworld.register_all_envs()
 
 def change_env_to_use_correct_mesh(mesh):
-	path_to_xml = os.path.join('/home/robertmu/bc_robert/multiworld/multiworld/envs/assets/sawyer_xyz/sawyer_push_box.xml')
+	path_to_xml = os.path.join('/home/robertmu/temp/multiworld/multiworld/envs/assets/sawyer_xyz/sawyer_push_box.xml')
 	tree = et.parse(path_to_xml)
 	root = tree.getroot()
 	[x.attrib for x in root.iter('geom')][0]['mesh']=mesh
+
 	 #set the masses, inertia and friction in a plausible way
 
 	physics_dict = {}
@@ -68,9 +69,11 @@ def change_env_to_use_correct_mesh(mesh):
 	physics_dict["skate"] =  ["12", "0.00016 0.00023 0.00008", "0.6 0.4 .0001" ]
 	physics_dict["bag1"] =  ["3", "0.00016 0.00023 0.00008", "0.005 0.004 .0001" ]
 	physics_dict["bag2"] =  ["8", "0.00016 0.00023 0.00008", "0.01 0.01 .0001" ]
-	physics_dict["keyboard"] =  ["5", "0.00016 0.00023 0.00008", "0.002 0.004 .0001" ]
+	physics_dict["keyboard"] =  ["3", "0.00016 0.00023 0.00008", "0.002 0.004 .0001" ]
 	physics_dict["knife"] =  ["8", "0.00016 0.00023 0.00008", "0.0005 0.0004 .0001" ]
 	physics_dict["pillow"] =  ["6", "0.00016 0.00023 0.00008", "0.5 0.4 .0001" ]
+	physics_dict["bag22"] =  ["8", "0.00016 0.00023 0.00008", "0.01 0.01 .0001" ]
+	physics_dict["knife2"] =  ["8", "0.00016 0.00023 0.00008", "0.0005 0.0004 .0001" ]
 
 	#set parameters
 	[x.attrib for x in root.iter('geom')][0]['mass'] = physics_dict[mesh][0]
@@ -104,7 +107,7 @@ def parse_args():
 						default=None,
 						type=str,
 						help='Path to some initial expert data collected.')
-	parser.add_argument('--max-path-length', '-l', type=int, default=40)
+	parser.add_argument('--max-path-length', '-l', type=int, default=50)
 	parser.add_argument('--num-rollouts', '-n', type=int, default=10)
 	parser.add_argument('--test-num-rollouts', '-tn', type=int, default=20)
 	parser.add_argument('--num-iterations', type=int, default=50)
@@ -118,21 +121,14 @@ def parse_args():
 def main(args):
 
 	## Define environment
-	expert_list = ['mug1','mouse','mug2','headphones','eyeglass','coffee_mug','car3','book','hamet','plane','pillow']
+	expert_list = ['mouse','car2','keyboard','knife2']
 	if args.mesh is not None: change_env_to_use_correct_mesh(args.mesh)
 
-	# env = gym.make(args.env)
-	# env = NormalizeActionWrapper(env)
-	# env = ImageEnv(env,
-	# 		 imsize=64,
-	# 		 normalize=True,
-	# 		 init_camera=init_multiple_cameras,
-	# 		 num_cameras=10,
-	# 		 num_views=4,
-	# 		 depth=True,
-	# 		 cam_angles=True,
-	# 		 reward_type="wrapped_env",
-	# 		 flatten=False)
+	# change_env_to_use_correct_mesh("mouse")
+	# "/Users/zyc/Downloads/save200_mouse" 
+	# load_path="/home/robertmu/checkpoint/ckpt_testone8/save200"
+
+	# params_path="/home/robertmu/logs/back1"
 
 	# Dictionary of values to plot
 	plotters = {'min_return': [],
@@ -141,13 +137,29 @@ def main(args):
 				'mean_final_success': []}
 
 
-	name = "test9obj"
+	name = "4objs"
 	log_dir_ = os.path.join("logs_mujoco_offline", name)
 	checkpoint_dir_ = os.path.join("checkpoints", name)
 	set_writer = tf.summary.FileWriter(log_dir_ + '/train', None)
 
 	## Define expert
-	expert_policy, env = load_expert.get_policy(args.checkpoint_path)
+	env = gym.make("SawyerPushAndReachEnvEasy-v0",reward_type='puck_success')
+	camera_space={'dist_low': 0.7,'dist_high': 1.5,'angle_low': 0,'angle_high': 180,'elev_low': -180,'elev_high': -90}
+
+	env = ImageEnv(
+			wrapped_env=env,
+			imsize=64,
+			normalize=True,
+			camera_space=camera_space,
+			init_camera=(lambda x: init_multiple_cameras(x, camera_space)),
+			num_cameras=4,#4 for training
+			depth=True,
+			cam_info=True,
+			reward_type='wrapped_env',
+			flatten=False
+		)
+
+	# expert_policy, env = load_expert.get_policy(args.checkpoint_path)
 
 	## Define policy network
 	policy = Tensor_XYZ_Policy("dagger_tensor_xyz", env)
@@ -216,35 +228,49 @@ def main(args):
 		print('generating {} data'.format(mesh))
 		change_env_to_use_correct_mesh(mesh)
 		## Define expert
-		checkpoint_path = '/projects/katefgroup/yunchu/{}'.format(mesh)+'48/checkpoint_1350/'
-		if mesh =='mug2':
-			checkpoint_path = '/projects/katefgroup/yunchu/{}'.format(mesh)+'48/checkpoint_1450/'
-		expert_policy, env = load_expert.get_policy(checkpoint_path)
-		# Load expert policy
-		pickle_path = os.path.join(checkpoint_path, 'checkpoint.pkl')
-		with open(pickle_path, 'rb') as f:
-			picklable = pickle.load(f)
+		load_path='/projects/katefgroup/apokle/ckpts/{}'.format(mesh)+'/save99'
+		params_path='/projects/katefgroup/apokle/ckpts/{}'.format(mesh)
 
-		expert_policy.set_weights(picklable['policy_weights'])
-		with expert_policy.set_deterministic(True):
-		
-			# Collect initial data
-			if init is True:
-				data, _ = rollout(env,
-							args.num_rollouts,
-							args.max_path_length,
-							expert_policy,
-							mesh = mesh)
-				np.save('expert_data_{}.npy'.format(args.env), data)
-				init = False
-			else:
-				roll, _ = rollout(env,
+		if mesh =='keyboard':
+			load_path='/projects/katefgroup/apokle/ckpts/{}'.format(mesh)+'/save398'
+
+		# expert_policy, env = load_expert.get_policy(checkpoint_path)
+
+		expert_policy = load_ddpg.load_policy(load_path, params_path)
+		env = gym.make("SawyerPushAndReachEnvEasy-v0",reward_type='puck_success')
+		camera_space={'dist_low': 0.7,'dist_high': 1.5,'angle_low': 0,'angle_high': 180,'elev_low': -180,'elev_high': -90}
+
+		env = ImageEnv(
+				wrapped_env=env,
+				imsize=64,
+				normalize=True,
+				camera_space=camera_space,
+				init_camera=(lambda x: init_multiple_cameras(x, camera_space)),
+				num_cameras=4,#4 for training
+				depth=True,
+				cam_info=True,
+				reward_type='wrapped_env',
+				flatten=False
+			)
+
+		# Collect initial data
+		if init is True:
+			data, _ = rollout(env,
 						args.num_rollouts,
 						args.max_path_length,
 						expert_policy,
 						mesh = mesh)
-				data = append_paths(data, roll)
-
+			np.save('expert_data_{}.npy'.format(args.env), data)
+			init = False
+		else:
+			roll, _ = rollout(env,
+					args.num_rollouts,
+					args.max_path_length,
+					expert_policy,
+					mesh = mesh)
+			data = append_paths(data, roll)
+		env.close()
+		tf.get_variable_scope().reuse_variables()
 	## Start training
 
 	# Start for loop
@@ -256,13 +282,13 @@ def main(args):
 				'mean_return': [],
 				'mean_final_success': []}
 		# Parse dataset for supervised learning
-		num_samples = data['state_observation'].shape[0]
+		num_samples = data['achieved_goal'].shape[0]
 		print('num_samples',num_samples)
 		idx = np.arange(num_samples)
 		np.random.shuffle(idx)
 		for j in range(num_samples // args.mb_size):
 			np.random.shuffle(idx)
-			feed = policy.train_process_observation(data, idx[:args.mb_size] ,env)
+			feed = policy.train_process_observation(data, idx[:args.mb_size])
 			act_train = data['actions'][idx[:args.mb_size]]
 			feed.update({act:act_train})
 			loss, _ = session.run([loss_op,opt], feed_dict=feed)
@@ -278,29 +304,43 @@ def main(args):
 			print('generating {} dagger data'.format(mesh))
 			change_env_to_use_correct_mesh(mesh)
 			## Define expert
-			checkpoint_path = '/projects/katefgroup/yunchu/{}'.format(mesh)+'48/checkpoint_1350/'
-			if mesh =='mug2':
-				checkpoint_path = '/projects/katefgroup/yunchu/{}'.format(mesh)+'48/checkpoint_1450/'
-			expert_policy, env = load_expert.get_policy(checkpoint_path)
-			# Load expert policy
-			pickle_path = os.path.join(checkpoint_path, 'checkpoint.pkl')
-			with open(pickle_path, 'rb') as f:
-				picklable = pickle.load(f)
+			load_path='/projects/katefgroup/apokle/ckpts/{}'.format(mesh)+'/save99'
+			params_path='/projects/katefgroup/apokle/ckpts/{}'.format(mesh)
 
-			expert_policy.set_weights(picklable['policy_weights'])
+			if mesh =='keyboard':
+				load_path='/projects/katefgroup/apokle/ckpts/{}'.format(mesh)+'/save399'
 
-			with expert_policy.set_deterministic(True):
+			# expert_policy, env = load_expert.get_policy(checkpoint_path)
+
+			expert_policy = load_ddpg.load_policy(load_path, params_path)
+			env = gym.make("SawyerPushAndReachEnvEasy-v0",reward_type='puck_success')
+			camera_space={'dist_low': 0.7,'dist_high': 1.5,'angle_low': 0,'angle_high': 180,'elev_low': -180,'elev_high': -90}
+
+			env = ImageEnv(
+					wrapped_env=env,
+					imsize=64,
+					normalize=True,
+					camera_space=camera_space,
+					init_camera=(lambda x: init_multiple_cameras(x, camera_space)),
+					num_cameras=4,#4 for training
+					depth=True,
+					cam_info=True,
+					reward_type='wrapped_env',
+					flatten=False
+				)
 			# Collect initial data
-				roll, plot_data = rollout(env,
-					args.num_rollouts,
-					args.max_path_length,
-					policy,
-					expert_policy,
-					mesh = mesh)
-				# import ipdb;ipdb.set_trace()
-				data = append_paths(data, roll)
+			roll, plot_data = rollout(env,
+				args.num_rollouts,
+				args.max_path_length,
+				policy,
+				expert_policy,
+				mesh = mesh)
+			# import ipdb;ipdb.set_trace()
+			env.close()
+			tf.get_variable_scope().reuse_variables()
+			data = append_paths(data, roll)
 
-				for key in plotters.keys(): plotters[key].append(plot_data[key])
+			for key in plotters.keys(): plotters[key].append(plot_data[key])
 
 
 		minro,maxro,meanro,meanfo= session.run([min_return_op,max_return_op,mean_return_op,mean_final_success_op],feed_dict=\
@@ -324,7 +364,7 @@ def main(args):
 def test(args):
 
 	## Define environment
-	expert_list = ['mug1','mouse','mug2','headphones','ball','book','eyeglass']
+	expert_list = ['knife2','car2','keyboard','mouse']
 	if args.mesh is not None: change_env_to_use_correct_mesh(args.mesh)
 
 	# Dictionary of values to plot
@@ -334,7 +374,21 @@ def test(args):
 				'mean_final_success': []}
 
 	# Create environment
-	_, env = load_expert.get_policy(args.checkpoint_path)
+	env = gym.make("SawyerPushAndReachEnvEasy-v0",reward_type='puck_success')
+	camera_space={'dist_low': 0.7,'dist_high': 1.5,'angle_low': 0,'angle_high': 180,'elev_low': -180,'elev_high': -90}
+
+	env = ImageEnv(
+			wrapped_env=env,
+			imsize=64,
+			normalize=True,
+			camera_space=camera_space,
+			init_camera=(lambda x: init_multiple_cameras(x, camera_space)),
+			num_cameras=4,#4 for training
+			depth=True,
+			cam_info=True,
+			reward_type='wrapped_env',
+			flatten=False
+		)
 
 	## Define policy network
 	policy = Tensor_XYZ_Policy("dagger_tensor_xyz", env)
@@ -359,8 +413,21 @@ def test(args):
 	for mesh in expert_list:
 		print('testing {} '.format(mesh))
 		change_env_to_use_correct_mesh(mesh)
-		checkpoint_path = '/projects/katefgroup/yunchu/{}'.format(mesh)+'48/checkpoint_1400/'
-		_, env = load_expert.get_policy(checkpoint_path)	
+		env = gym.make("SawyerPushAndReachEnvEasy-v0",reward_type='puck_success')
+		camera_space={'dist_low': 0.7,'dist_high': 1.5,'angle_low': 0,'angle_high': 180,'elev_low': -180,'elev_high': -90}
+
+		env = ImageEnv(
+				wrapped_env=env,
+				imsize=64,
+				normalize=True,
+				camera_space=camera_space,
+				init_camera=(lambda x: init_multiple_cameras(x, camera_space)),
+				num_cameras=4,#4 for training
+				depth=True,
+				cam_info=True,
+				reward_type='wrapped_env',
+				flatten=False
+			)	
 		
 		_, stats = rollout(env,
 				args.test_num_rollouts,
