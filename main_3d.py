@@ -121,7 +121,7 @@ def parse_args():
 def main(args):
 
 	## Define environment
-	expert_list = ['mouse','car2','keyboard','knife2']
+	expert_list = ['mouse','headphones']
 	if args.mesh is not None: change_env_to_use_correct_mesh(args.mesh)
 
 	# change_env_to_use_correct_mesh("mouse")
@@ -137,7 +137,7 @@ def main(args):
 				'mean_final_success': []}
 
 
-	name = "4objs"
+	name = "test_2objs"
 	log_dir_ = os.path.join("logs_mujoco_offline", name)
 	checkpoint_dir_ = os.path.join("checkpoints", name)
 	set_writer = tf.summary.FileWriter(log_dir_ + '/train', None)
@@ -228,11 +228,12 @@ def main(args):
 		print('generating {} data'.format(mesh))
 		change_env_to_use_correct_mesh(mesh)
 		## Define expert
-		load_path='/projects/katefgroup/apokle/ckpts/{}'.format(mesh)+'/save99'
-		params_path='/projects/katefgroup/apokle/ckpts/{}'.format(mesh)
+		# /projects/katefgroup/sawyer_ddpg_weight
+		load_path='/projects/katefgroup/sawyer_ddpg_weight/{}'.format(mesh)+'/save150'
+		params_path='/projects/katefgroup/sawyer_ddpg_weight/{}'.format(mesh)
 
-		if mesh =='keyboard':
-			load_path='/projects/katefgroup/apokle/ckpts/{}'.format(mesh)+'/save398'
+		# if mesh =='mouse':
+		# 	load_path='/projects/katefgroup/apokle/ckpts/{}'.format(mesh)+'/save99'
 
 		# expert_policy, env = load_expert.get_policy(checkpoint_path)
 
@@ -304,11 +305,11 @@ def main(args):
 			print('generating {} dagger data'.format(mesh))
 			change_env_to_use_correct_mesh(mesh)
 			## Define expert
-			load_path='/projects/katefgroup/apokle/ckpts/{}'.format(mesh)+'/save99'
-			params_path='/projects/katefgroup/apokle/ckpts/{}'.format(mesh)
+			load_path='/projects/katefgroup/sawyer_ddpg_weight/{}'.format(mesh)+'/save150'
+			params_path='/projects/katefgroup/sawyer_ddpg_weight/{}'.format(mesh)
 
-			if mesh =='keyboard':
-				load_path='/projects/katefgroup/apokle/ckpts/{}'.format(mesh)+'/save399'
+			# if mesh =='mouse':
+			# 	load_path='/projects/katefgroup/apokle/ckpts/{}'.format(mesh)+'/save99'
 
 			# expert_policy, env = load_expert.get_policy(checkpoint_path)
 

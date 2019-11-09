@@ -67,68 +67,68 @@ def load_policy(load_path, params_path):
 		print("Successfully loaded a policy.")
 	return policy
 
-# def change_env_to_use_correct_mesh(mesh):
-# 	path_to_xml = os.path.join('/home/robertmu/temp/multiworld/multiworld/envs/assets/sawyer_xyz/sawyer_push_box.xml')
-# 	tree = et.parse(path_to_xml)
-# 	root = tree.getroot()
-# 	[x.attrib for x in root.iter('geom')][0]['mesh']=mesh
+def change_env_to_use_correct_mesh(mesh):
+	path_to_xml = os.path.join('/Users/zyc/Downloads/multiworld/multiworld/envs/assets/sawyer_xyz/sawyer_push_box.xml')
+	tree = et.parse(path_to_xml)
+	root = tree.getroot()
+	[x.attrib for x in root.iter('geom')][0]['mesh']=mesh
 
-# 	 #set the masses, inertia and friction in a plausible way
+	 #set the masses, inertia and friction in a plausible way
 
-# 	physics_dict = {}
-# 	physics_dict["printer"] =  ["6.0", ".00004 .00003 .00004", "1 1 .0001" ]
-# 	physics_dict["mug1"] =  ["0.31", ".000000001 .0000000009 .0000000017", "0.008 0.008 .00001" ]
-# 	physics_dict["mug2"] =  ["16.5", ".000001 .0000009 .0000017", "0.4 0.2 .00001" ]
-# 	physics_dict["mug3"] =  ["0.33", ".000000001 .0000000009 .0000000017", "0.008 0.008 .00001" ]
-# 	physics_dict["can1"] =  ["0.55", ".00000002 .00000002 .00000001", "0.2 0.2 .0001" ]
-# 	physics_dict["car1"] =  ["0.2", ".0000000017 .0000000005 .0000000019", "1.2 1.2 .00001" ]
-# 	physics_dict["car2"] =  ["0.4", ".0000000017 .0000000005 .0000000019", "1.2 1.2 .00001" ]
-# 	physics_dict["car3"] =  ["5.5", ".0000000017 .0000000005 .0000000019", "1.2 1.2 .00001" ]
-# 	physics_dict["car4"] =  ["0.8", ".0000000017 .0000000005 .0000000019", "1.2 1.2 .00001" ]
-# 	physics_dict["car5"] =  ["2.0", ".0000000017 .0000000005 .0000000019", "1.2 1.2 .00001" ]
-# 	physics_dict["boat"] =  ["17.0", ".00000002 .00000002 .00000001", "0.2 0.2 .0001" ]
-# 	physics_dict["bowl"] =  ["10", ".00000002 .00000002 .00000001", "0.2 0.2 .0001" ]
-# 	physics_dict["bowl2"] =  ["1", ".00002 .00002 .00001", "0.2 0.2 .0001" ]
-# 	physics_dict["bowl4"] =  ["0.7", ".00000002 .00000002 .00000001", "0.2 0.2 .0001" ]
-# 	physics_dict["hat1"] =  ["0.2", ".00000002 .00000002 .00000001", "0.2 0.2 .0001" ]
-# 	physics_dict["hat2"] =  ["0.4", ".00000002 .00000002 .00000001", "0.2 0.2 .0001" ]
-# 	physics_dict["mouse"] = ["2.7", ".00027 .00025 .00016", "1.5 0.5 .000001"]
-# 	physics_dict["book"] = ["10", ".00768 .01193 .00646", "3.5 2.5 .000001"]
-# 	physics_dict["coffee_mug"] = ["21", ".0007 .0002 .0007", "0.35 0.25 .000001"]
-# 	physics_dict["boat2"] =  ["6.0", ".00002 .00002 .00001", "0.2 0.2 .0001" ]
-# 	physics_dict["headphones"] =  ["3", ".0012 .0039 .0029", "0.7 0.4 .0001" ]
-# 	physics_dict["ball"] =  ["9", "0.000007 0.000007 0.000007", "0.0005 0.0004 .0001" ]
-# 	physics_dict["eyeglass"] =  ["2.5", "0.00016 0.00023 0.00008", "0.0005 0.0004 .0001" ]
-# 	physics_dict["plane"] =  ["5.5", "0.00016 0.00023 0.00008", "0.0005 0.0004 .0001" ]
-# 	physics_dict["hamet"] =  ["12.5", "0.00016 0.00023 0.00008", "0.005 0.004 .001" ]
-# 	physics_dict["clock"] =  ["3.5", "0.00016 0.00023 0.00008", "0.00005 0.00004 .00001" ]
-# 	physics_dict["skate"] =  ["12", "0.00016 0.00023 0.00008", "0.6 0.4 .0001" ]
-# 	physics_dict["bag1"] =  ["3", "0.00016 0.00023 0.00008", "0.005 0.004 .0001" ]
-# 	physics_dict["bag2"] =  ["8", "0.00016 0.00023 0.00008", "0.01 0.01 .0001" ]
-# 	physics_dict["keyboard"] =  ["3", "0.00016 0.00023 0.00008", "0.002 0.004 .0001" ]
-# 	physics_dict["knife"] =  ["8", "0.00016 0.00023 0.00008", "0.0005 0.0004 .0001" ]
-# 	physics_dict["pillow"] =  ["6", "0.00016 0.00023 0.00008", "0.5 0.4 .0001" ]
-# 	physics_dict["bag22"] =  ["8", "0.00016 0.00023 0.00008", "0.01 0.01 .0001" ]
-# 	physics_dict["knife2"] =  ["8", "0.00016 0.00023 0.00008", "0.0005 0.0004 .0001" ]
+	physics_dict = {}
+	physics_dict["printer"] =  ["6.0", ".00004 .00003 .00004", "1 1 .0001" ]
+	physics_dict["mug1"] =  ["0.31", ".000000001 .0000000009 .0000000017", "0.008 0.008 .00001" ]
+	physics_dict["mug2"] =  ["16.5", ".000001 .0000009 .0000017", "0.4 0.2 .00001" ]
+	physics_dict["mug3"] =  ["0.33", ".000000001 .0000000009 .0000000017", "0.008 0.008 .00001" ]
+	physics_dict["can1"] =  ["0.55", ".00000002 .00000002 .00000001", "0.2 0.2 .0001" ]
+	physics_dict["car1"] =  ["0.2", ".0000000017 .0000000005 .0000000019", "1.2 1.2 .00001" ]
+	physics_dict["car2"] =  ["0.4", ".0000000017 .0000000005 .0000000019", "1.2 1.2 .00001" ]
+	physics_dict["car3"] =  ["5.5", ".0000000017 .0000000005 .0000000019", "1.2 1.2 .00001" ]
+	physics_dict["car4"] =  ["0.8", ".0000000017 .0000000005 .0000000019", "1.2 1.2 .00001" ]
+	physics_dict["car5"] =  ["2.0", ".0000000017 .0000000005 .0000000019", "1.2 1.2 .00001" ]
+	physics_dict["boat"] =  ["17.0", ".00000002 .00000002 .00000001", "0.2 0.2 .0001" ]
+	physics_dict["bowl"] =  ["10", ".00000002 .00000002 .00000001", "0.2 0.2 .0001" ]
+	physics_dict["bowl2"] =  ["1", ".00002 .00002 .00001", "0.2 0.2 .0001" ]
+	physics_dict["bowl4"] =  ["0.7", ".00000002 .00000002 .00000001", "0.2 0.2 .0001" ]
+	physics_dict["hat1"] =  ["0.2", ".00000002 .00000002 .00000001", "0.2 0.2 .0001" ]
+	physics_dict["hat2"] =  ["0.4", ".00000002 .00000002 .00000001", "0.2 0.2 .0001" ]
+	physics_dict["mouse"] = ["2.7", ".00027 .00025 .00016", "1.5 0.5 .000001"]
+	physics_dict["book"] = ["10", ".00768 .01193 .00646", "3.5 2.5 .000001"]
+	physics_dict["coffee_mug"] = ["21", ".0007 .0002 .0007", "0.35 0.25 .000001"]
+	physics_dict["boat2"] =  ["6.0", ".00002 .00002 .00001", "0.2 0.2 .0001" ]
+	physics_dict["headphones"] =  ["3", ".0012 .0039 .0029", "0.7 0.4 .0001" ]
+	physics_dict["ball"] =  ["9", "0.000007 0.000007 0.000007", "0.0005 0.0004 .0001" ]
+	physics_dict["eyeglass"] =  ["2.5", "0.00016 0.00023 0.00008", "0.0005 0.0004 .0001" ]
+	physics_dict["plane"] =  ["5.5", "0.00016 0.00023 0.00008", "0.0005 0.0004 .0001" ]
+	physics_dict["hamet"] =  ["12.5", "0.00016 0.00023 0.00008", "0.005 0.004 .001" ]
+	physics_dict["clock"] =  ["3.5", "0.00016 0.00023 0.00008", "0.00005 0.00004 .00001" ]
+	physics_dict["skate"] =  ["12", "0.00016 0.00023 0.00008", "0.6 0.4 .0001" ]
+	physics_dict["bag1"] =  ["3", "0.00016 0.00023 0.00008", "0.005 0.004 .0001" ]
+	physics_dict["bag2"] =  ["8", "0.00016 0.00023 0.00008", "0.01 0.01 .0001" ]
+	physics_dict["keyboard"] =  ["3", "0.00016 0.00023 0.00008", "0.002 0.004 .0001" ]
+	physics_dict["knife"] =  ["8", "0.00016 0.00023 0.00008", "0.0005 0.0004 .0001" ]
+	physics_dict["pillow"] =  ["6", "0.00016 0.00023 0.00008", "0.5 0.4 .0001" ]
+	physics_dict["bag22"] =  ["8", "0.00016 0.00023 0.00008", "0.01 0.01 .0001" ]
+	physics_dict["knife2"] =  ["8", "0.00016 0.00023 0.00008", "0.0005 0.0004 .0001" ]
 
-# 	#set parameters
-# 	[x.attrib for x in root.iter('geom')][0]['mass'] = physics_dict[mesh][0]
-# 	# [x.attrib for x in root.iter('inertial')][0]['diaginertia'] = physics_dict[mesh][1]
-# 	[x.attrib for x in root.iter('geom')][0]['friction'] = physics_dict[mesh][2]
+	#set parameters
+	[x.attrib for x in root.iter('geom')][0]['mass'] = physics_dict[mesh][0]
+	# [x.attrib for x in root.iter('inertial')][0]['diaginertia'] = physics_dict[mesh][1]
+	[x.attrib for x in root.iter('geom')][0]['friction'] = physics_dict[mesh][2]
 
-# 	tree.write(path_to_xml)
+	tree.write(path_to_xml)
 
 def main():
-	# change_env_to_use_correct_mesh("mouse")
+	change_env_to_use_correct_mesh("hamet")
 	# "/Users/zyc/Downloads/save200_mouse" 
-	load_path="/Users/zyc/Downloads/save200_mouse"
+	load_path="/Users/zyc/Downloads/save200"
 	# "/Users/zyc/Downloads/save200_mouse" 
 	
 	# "/Users/zyc/Downloads"
 	params_path="/Users/zyc/Downloads"
-	mesh = 'mouse'
-	load_path='/projects/katefgroup/apokle/ckpts/{}'.format(mesh)+'/save99'
-	params_path='/projects/katefgroup/apokle/ckpts/{}'.format(mesh)
+	# mesh = 'mouse'
+	# load_path='/projects/katefgroup/apokle/ckpts/{}'.format(mesh)+'/save99'
+	# params_path='/projects/katefgroup/apokle/ckpts/{}'.format(mesh)
 	# "/Users/zyc/Downloads"
 	
 
@@ -155,7 +155,7 @@ def main():
 
 	episode_rew = 0
 	i = 0
-	while i<50:
+	while True:
 		# import ipdb;ipdb.set_trace()
 
 		actions, _, _, _ = model.step(obs)
@@ -163,7 +163,7 @@ def main():
 		obs, rew, done, _ = env.step(actions)
 		# print(actions)
 		episode_rew += rew[0] 
-		# env.render('wrapped')
+		env.render('wrapped')
 		if done:
 			print('episode_rew={}'.format(episode_rew))
 			episode_rew = 0
@@ -175,6 +175,6 @@ def main():
 	return model
 
 if __name__ == '__main__':
-	while True:
-		main()
-		tf.get_variable_scope().reuse_variables()
+	# while True:
+	main()
+		# tf.get_variable_scope().reuse_variables()
