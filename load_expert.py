@@ -39,7 +39,7 @@ def get_environment_from_params_custom(environment_params):
     return get_environment(universe, domain, task, environment_kwargs)
 
 
-def get_policy(checkpoint_path):
+def get_policy(checkpoint_path, image_env=True):
     checkpoint_path = checkpoint_path.rstrip('/')
     experiment_path = os.path.dirname(checkpoint_path)
 
@@ -54,6 +54,9 @@ def get_policy(checkpoint_path):
     evaluation_environment = get_environment_from_params(environment_params)
 
     policy = (get_policy_from_variant(variant, evaluation_environment, Qs=[None]))
-    training_environment = get_environment_from_params_custom(environment_params)
+    if image_env:
+        training_environment = get_environment_from_params_custom(environment_params)
+    else:
+        training_environment = get_environment_from_params(environment_params)
 
     return policy, training_environment

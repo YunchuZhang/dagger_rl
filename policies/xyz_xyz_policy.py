@@ -3,15 +3,17 @@ import numpy as np
 import tf_utils as tfu
 
 
-KEYS = ['observation_with_orientation',
+KEYS = [#'observation_with_orientation',
 		'desired_goal',
 		'achieved_goal',
-		'state_observation',
-		'state_desired_goal',
-		'state_achieved_goal',
-		'proprio_observation',
-		'proprio_desired_goal',
-		'proprio_achieved_goal']
+		'observation',
+		# 'state_observation',
+		# 'state_desired_goal',
+		# 'state_achieved_goal',
+		# 'proprio_observation',
+		# 'proprio_desired_goal',
+		# 'proprio_achieved_goal'
+		]
 
 class XYZ_XYZ_Policy:
 
@@ -19,15 +21,14 @@ class XYZ_XYZ_Policy:
 				 name,
 				 env,
 				 hidden_sizes=[64, 64, 64]):
+		self.obs_dim = sum([env.observation_space.spaces[key].shape[0] for key in KEYS])
+		self.act_dim = env.action_space.shape[0]
+		self.hidden_sizes = hidden_sizes
+		self.KEYS = KEYS
 
-	    self.obs_dim = sum([env.observation_space.spaces[key].shape[0] for key in KEYS])
-	    self.act_dim = env.action_space.shape[0]
-	    self.hidden_sizes = hidden_sizes
-	    self.KEYS = KEYS
-
-	    with tf.variable_scope(name):
-	    	self.scope = tf.get_variable_scope().name
-	    	self.build(hidden_sizes)
+		with tf.variable_scope(name):
+			self.scope = tf.get_variable_scope().name
+			self.build(hidden_sizes)
 
 
 	def build(self, hidden_sizes):
@@ -38,8 +39,8 @@ class XYZ_XYZ_Policy:
 		
 		out = ob
 		for i, hidden_size in enumerate(hidden_sizes):
-
-			out = tf.nn.tanh(tfu.dense(out,
+			#import pdb; pdb.set_trace()
+			out = tf.nn.relu(tfu.dense(out,
 									hidden_size,
 									"policyfc%i" % (i+1),
 									weight_init=tfu.normc_initializer(1.0)))

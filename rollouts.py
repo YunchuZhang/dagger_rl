@@ -7,15 +7,23 @@ import getpass
 # from discovery.backend.mujoco_online_inputs import get_inputs
 import tensorflow as tf
 import tf_utils as tfu
-EXPERT_KEYS = ['observation_with_orientation',
+EXPERT_KEYS = [	'observation',
+				#'observation_with_orientation',
 				'desired_goal',
 				'achieved_goal',
-				'state_observation',
-				'state_desired_goal',
-				'state_achieved_goal',
-				'proprio_observation',
-				'proprio_desired_goal',
-				'proprio_achieved_goal']
+				# 'state_observation',
+				# 'state_desired_goal',
+				# 'state_achieved_goal',
+				# 'proprio_observation',
+				# 'proprio_desired_goal',
+				# 'proprio_achieved_goal'
+				]
+
+baseline_short_keys = [	'observation',
+				#'observation_with_orientation', 
+				'desired_goal', 
+				'achieved_goal']
+
 short_keys = [	'observation',
 				'observation_with_orientation', 
 				'desired_goal', 
@@ -33,6 +41,9 @@ short_keys = [	'observation',
 				# 'depth_desired_goal', 
 				'cam_info_observation']
 				# 'cam_info_goal']
+
+
+
 def evaluate_rollouts(paths):
 	"""Compute evaluation metrics for the given rollouts."""
 
@@ -69,16 +80,24 @@ def rollout(env,
 			path_length,
 			policy,
 			expert_policy=None,
-			mesh = None):
+			mesh = None, image_env=True):
 	# env_keys = env.observation_space.spaces.keys()
-	env_keys = short_keys
-	obj_size = env.sim.model.geom_size[env.sim.model.geom_name2id('puckbox')]
-	obj_size = 2 * obj_size
-	puck_z = env.init_puck_z + \
-			env.sim.model.geom_pos[env.sim.model.geom_name2id('puckbox')][-1]
+	if image_env:
+		env_keys = short_keys
+	else:
+		env_keys = baseline_short_keys
 
-	if mesh =='mug2' or mesh == 'mouse' or mesh == 'coffee_mug':
-		obj_size = np.repeat(np.max(obj_size),3)
+	if image_env:
+		obj_size = env.sim.model.geom_size[env.sim.model.geom_name2id('puckbox')]
+		obj_size = 2 * obj_size
+		puck_z = env.init_puck_z + \
+				env.sim.model.geom_pos[env.sim.model.geom_name2id('puckbox')][-1]
+	else:
+		puck_z = 0.01
+
+	if image_env:
+		if mesh =='mug2' or mesh == 'mouse' or mesh == 'coffee_mug':
+			obj_size = np.repeat(np.max(obj_size),3)
 
 	# Check instance for DDPG
 	# <baselines.her.ddpg.DDPG object at 0x7f70a8560e10>
@@ -118,7 +137,10 @@ def rollout(env,
 			if str(policy).find('DDPG')!=-1:
 				action,_,_,_ = actor(observation)
 			else:
-				action = actor(observation,obj_size,puck_z)
+				if image_env:
+					action = actor(observation,obj_size,puck_z)
+				else:
+					action = actor(observation)
 			if expert_policy:
 				# exp_observation = exp_observation_converter(observation)
 				expert_action,_,_,_ = expert_actor(observation)
@@ -134,7 +156,8 @@ def rollout(env,
 			actions.append(expert_action)
 			terminals.append(terminal)
 			
-			obj_sizes.append(obj_size)
+			if image_env:
+				obj_sizes.append(obj_size)
 			puck_zs.append(puck_z)
 
 			infos.append(info)
@@ -151,7 +174,8 @@ def rollout(env,
 		path = {key: np.stack(path[key], axis=0) for key in env_keys}
 		path['actions'] = np.stack(actions, axis=0)
 		path['terminals'] = np.stack(terminals, axis=0).reshape(-1,1)
-		path['obj_sizes'] = np.stack(obj_sizes, axis=0)
+		if image_env:
+			path['obj_sizes'] = np.stack(obj_sizes, axis=0)
 		path['puck_zs'] = np.stack(puck_zs, axis=0).reshape(-1,1)
 		if isinstance(policy, GaussianPolicy) and len(path['terminals']) >= path_length:
 			continue

@@ -56,6 +56,7 @@ def prepare_params(kwargs):
 
 
 def load_policy(load_path, params_path):
+	#import pdb; pdb.set_trace()
 	with open(params_path + '/params.json') as f:
 		params = json.load(f)
 	clip_return=True
