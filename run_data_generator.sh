@@ -1,0 +1,1 @@
+python data_generator.py --env=SawyerPushAndReachEnvEasy-v0 --expert-path=/Users/apokle/Documents/goal_conditioned_policy/dagger_rl/ckpts --expert-ckpt=save99
