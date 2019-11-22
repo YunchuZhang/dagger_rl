@@ -8,19 +8,11 @@ import getpass
 import tensorflow as tf
 import tf_utils as tfu
 EXPERT_KEYS = [	'observation',
-				#'observation_with_orientation',
 				'desired_goal',
 				'achieved_goal',
-				# 'state_observation',
-				# 'state_desired_goal',
-				# 'state_achieved_goal',
-				# 'proprio_observation',
-				# 'proprio_desired_goal',
-				# 'proprio_achieved_goal'
 				]
 
 baseline_short_keys = [	'observation',
-				#'observation_with_orientation', 
 				'desired_goal', 
 				'achieved_goal']
 
@@ -28,12 +20,6 @@ short_keys = [	'observation',
 				'observation_with_orientation', 
 				'desired_goal', 
 				'achieved_goal', 
-				# 'state_observation', 
-				# 'state_desired_goal', 
-				# 'state_achieved_goal', 
-				# 'proprio_observation', 
-				# 'proprio_desired_goal', 
-				# 'proprio_achieved_goal', 
 				'image_observation', 
 				# 'image_desired_goal', 
 				# 'image_achieved_goal', 
@@ -46,8 +32,6 @@ short_keys = [	'observation',
 
 def evaluate_rollouts(paths):
 	"""Compute evaluation metrics for the given rollouts."""
-
-	import ipdb; ipdb.set_trace()
 	total_returns = [path['rewards'].sum() for path in paths]
 	episode_lengths = [len(p['rewards']) for p in paths]
 
@@ -80,7 +64,9 @@ def rollout(env,
 			path_length,
 			policy,
 			expert_policy=None,
-			mesh = None, image_env=True):
+			mesh = None, 
+			image_env= True,
+			data_gen=False):
 	# env_keys = env.observation_space.spaces.keys()
 	if image_env:
 		env_keys = short_keys
@@ -97,8 +83,9 @@ def rollout(env,
 
 	if image_env:
 		if mesh =='mug2' or mesh == 'mouse' or mesh == 'coffee_mug':
-			obj_size = np.repeat(np.max(obj_size),3)
+			obj_size = np.repeat(np.max(obj_size), 3)
 
+	#import pdb; pdb.set_trace()
 	# Check instance for DDPG
 	# <baselines.her.ddpg.DDPG object at 0x7f70a8560e10>
 	if str(policy).find('DDPG')!=-1:
@@ -141,12 +128,15 @@ def rollout(env,
 					action = actor(observation,obj_size,puck_z)
 				else:
 					action = actor(observation)
+
 			if expert_policy:
 				# exp_observation = exp_observation_converter(observation)
 				expert_action,_,_,_ = expert_actor(observation)
 			else:
 				expert_action = action
+
 			observation, reward, terminal, info = env.step(action)
+
 			# image = env.render(mode='rgb_array') #cv2 show image
 			# cv2.imwrite('store/'+'{}_'.format(mesh)+'{}.png'.format(img),image)
 			# img = img + 1
@@ -169,21 +159,22 @@ def rollout(env,
 				if isinstance(policy, GaussianPolicy):
 					policy.reset()
 				break
-
-		assert len(infos) == t + 1
-		path = {key: np.stack(path[key], axis=0) for key in env_keys}
-		path['actions'] = np.stack(actions, axis=0)
-		path['terminals'] = np.stack(terminals, axis=0).reshape(-1,1)
-		if image_env:
-			path['obj_sizes'] = np.stack(obj_sizes, axis=0)
-		path['puck_zs'] = np.stack(puck_zs, axis=0).reshape(-1,1)
-		if isinstance(policy, GaussianPolicy) and len(path['terminals']) >= path_length:
-			continue
-		elif not isinstance(policy, GaussianPolicy) and len(path['terminals'])==1:
-			continue
-		rewards.append(R)
-		count_infos.append(infos[-1]['puck_success'])
-		paths.append(path)
+		# If R == path_length, the episode very likely failed; do not append such paths
+		if R > -path_length:
+			assert len(infos) == t + 1
+			path = {key: np.stack(path[key], axis=0) for key in env_keys}
+			path['actions'] = np.stack(actions, axis=0)
+			path['terminals'] = np.stack(terminals, axis=0).reshape(-1,1)
+			if image_env:
+				path['obj_sizes'] = np.stack(obj_sizes, axis=0)
+			path['puck_zs'] = np.stack(puck_zs, axis=0).reshape(-1,1)
+			if isinstance(policy, GaussianPolicy) and len(path['terminals']) >= path_length:
+				continue
+			elif not isinstance(policy, GaussianPolicy) and len(path['terminals'])==1:
+				continue
+			rewards.append(R)
+			count_infos.append(infos[-1]['puck_success'])
+			paths.append(path)
 
 	# print('Minimum return: {}'.format(np.min(rewards)))
 	# print('Maximum return: {}'.format(np.max(rewards)))
