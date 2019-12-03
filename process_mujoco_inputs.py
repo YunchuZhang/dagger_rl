@@ -56,9 +56,9 @@ def get_inputs(pkl, puck_z):
     S, H, W = hyp.S, hyp.H, hyp.W
 
 
-    all_rgbs = np.reshape(all_rgbs,[all_rgbs.shape[0], 4, H, W, 3])
-    all_depths = np.reshape(all_depths, [all_depths.shape[0], 4, H, W, 1])
-    all_cam_info = np.reshape(all_cam_info, [all_cam_info.shape[0], 4, -1])
+    all_rgbs = np.reshape(all_rgbs,[all_rgbs.shape[0], S, H, W, 3])
+    all_depths = np.reshape(all_depths, [all_depths.shape[0], S, H, W, 1])
+    all_cam_info = np.reshape(all_cam_info, [all_cam_info.shape[0], S, -1])
     state_position = np.reshape(state_position, [state_position.shape[0], -1])
 
 
@@ -178,7 +178,8 @@ def get_inputs(pkl, puck_z):
     # put rgbs in [-.5, .5]
     rgbs = rgbs - 0.5
 
-    rgb_camXs = rgbs.astype(np.float32)
+    rgb_camXs = rgbs.astype(np.uint8)
+    depth_camXs = depths.astype(np.float32)
     xyz_camXs = xyz_cams.astype(np.float32)
     pix_T_cams = pix_T_cams.astype(np.float32)
     origin_T_camRs = origin_T_camRs.astype(np.float32)
@@ -188,6 +189,7 @@ def get_inputs(pkl, puck_z):
     d['pix_T_cams'] = pix_T_cams
     d['rgb_camXs'] = rgb_camXs
     d['xyz_camXs'] = xyz_camXs
+    d['depth_camXs'] = depth_camXs
     d['origin_T_camRs'] = origin_T_camRs
     d['origin_T_camXs'] = origin_T_camXs
     d['puck_xyz_camRs'] = puck_xyz_camRs
@@ -196,29 +198,34 @@ def get_inputs(pkl, puck_z):
 
     # info shared across seqs
     basic_info = dict()
-    basic_info["B"] = hyp.B
-    basic_info["S"] = hyp.S
+    basic_info["T"] = B
+    basic_info["S"] = S
     basic_info["image_width"] = hyp.W
     basic_info["image_height"] = hyp.H
 
-    # basic_info["N_MAX_OBJECTS"] = config.N_MAX_OBJECTS
-    # basic_info["N_MAX_AGENT_PARTS"] = config.N_MAX_AGENT_PARTS
     return d, basic_info
 
 # Convert the given data to records
 def convert_to_tfrecords(data, data_dict, tfrecord_filename):
     tfrecord_options = tf.io.TFRecordOptions('GZIP')
-    example = tf.train.Example(features=tf.train.Features(feature={
-        'rgb_camXs': utils_py.bytes_feature(data_dict['rgb_camXs'].tostring()), #uint8
-        'depth_camXs': utils_py.bytes_feature(data_dict['xyz_camXs'].tostring()),
-        'pix_T_cams': utils_py.bytes_feature(data_dict['pix_T_cams'].tostring()),
-        'origin_T_camXs': utils_py.bytes_feature(data_dict['origin_T_camXs'].tostring()),
-        'origin_T_camRs': utils_py.bytes_feature(data_dict['origin_T_camRs'].tostring()),
-        'puck_xyz_camRs': utils_py.bytes_feature(data_dict['puck_xyz_camRs'].tostring()),
-        'camRs_T_puck': utils_py.bytes_feature(data_dict['camRs_T_puck'].tostring()),
-        'observation': utils_py.bytes_feature(np.hstack([data['desired_goal'], data['achieved_goal']]).tostring())
-        # Inaddition, we need object sizes, we can get it on-the-fly from the environments. ALternately we can simply write this to basic info. 
-        # TODO: Write object size information to basic info file
-        }))
-    with tf.io.TFRecordWriter(tfrecord_filename, options=tfrecord_options) as writer:
-        writer.write(example.SerializeToString())
+    # length of record written to each file
+    record_files = []
+    n = data_dict["rgb_camXs"].shape[0]
+    for i, t in enumerate(range(0, n)):
+        # import pdb; pdb.set_trace()
+        example = tf.train.Example(features=tf.train.Features(feature={
+            'rgb_camXs': utils_py.bytes_feature(data_dict['rgb_camXs'][i].tostring()), #uint8
+            'depth_camXs': utils_py.bytes_feature(data_dict['depth_camXs'][i].tostring()),
+            'pix_T_cams': utils_py.bytes_feature(data_dict['pix_T_cams'][i].tostring()),
+            'origin_T_camXs': utils_py.bytes_feature(data_dict['origin_T_camXs'][i].tostring()),
+            #'origin_T_camRs': utils_py.bytes_feature(data_dict['origin_T_camRs'][i].tostring()),
+            #'puck_xyz_camRs': utils_py.bytes_feature(data_dict['puck_xyz_camRs'][i].tostring()),
+            #'camRs_T_puck': utils_py.bytes_feature(data_dict['camRs_T_puck'][i].tostring()),
+            #'observation': utils_py.bytes_feature(np.hstack([data['desired_goal'][i], data['achieved_goal'][i]]).tostring())
+            }))
+        file = tfrecord_filename.split('/')[-1] + "_" + str(i) + ".tf_records"
+        record_files.append(file + "\n")
+        with tf.io.TFRecordWriter(tfrecord_filename + "_" + str(i) + ".tf_records", options=tfrecord_options) as writer:
+            writer.write(example.SerializeToString())
+    return record_files
+

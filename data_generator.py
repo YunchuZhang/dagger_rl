@@ -11,13 +11,9 @@ from rollouts import rollout, append_paths
 
 import load_ddpg
 import pickle
-# import sys
-# import getpass
-# sys.path.append("/home/{}".format(getpass.getuser()))
-# sys.path.append('/Users/apokle/Documents/goal_conditioned_policy/')
-# sys.path.append('/Users/apokle/Documents/goal_conditioned_policy/discovery')
 
 from process_mujoco_inputs import get_inputs, convert_to_tfrecords
+import hyperparams as hyp
 
 multiworld.register_all_envs()
 
@@ -31,13 +27,14 @@ class DataGenerator():
         gym_env = gym.make(env, reward_type=reward_type)
         self.camera_space = {'dist_low': 0.7,'dist_high': 1.5,'angle_low': 0,'angle_high': 180,'elev_low': -180,'elev_high': -90}
 
+        num_cameras = hyp.S
         self.env = ImageEnv(
                 wrapped_env=gym_env,
                 imsize=64,
                 normalize=True,
                 camera_space=self.camera_space,
                 init_camera=(lambda x: init_multiple_cameras(x, self.camera_space)),
-                num_cameras=8,
+                num_cameras=num_cameras,
                 depth=True,
                 cam_info=True,
                 reward_type='wrapped_env',
@@ -45,10 +42,10 @@ class DataGenerator():
             )
         self.experts = experts
 
-    def generate_data(self):
+    def generate_data(self, num_rollouts, dataset_type="train"):
         data = None
         for mesh in self.experts:
-            print("Generating data for expert".format(mesh))
+            print("Generating data for expert {}".format(mesh))
             change_env_to_use_correct_mesh(mesh)
             expert_load_path = args.expert_path + "/" + mesh + "/" + args.expert_ckpt
             expert_params_path = args.expert_path + "/" + mesh
@@ -57,7 +54,7 @@ class DataGenerator():
             print("Num Rollouts ", args.num_rollouts)
             print("Max Path Length ", args.max_path_length)
             roll, _ = rollout(self.env,
-                        args.num_rollouts,
+                        num_rollouts,
                         args.max_path_length,
                         expert_policy,
                         mesh=mesh, 
@@ -68,19 +65,24 @@ class DataGenerator():
                 data = roll
 
         data_dict, basic_info = get_inputs(data, data['puck_zs'])
-        timestamp = time.strftime("%Y%m%d-%H%M%S")
-        basic_info_file = "basic_info_" + timestamp + ".pkl"
-        tfrecord_file = "data_" + timestamp + ".tfrecords"
-        with open(args.save_dir + "/" + basic_info_file, 'wb') as pkl:
-            pickle.dump(basic_info, pkl)
-        convert_to_tfrecords(data, data_dict, tfrecord_filename=args.save_dir + "/" + tfrecord_file)
+        basic_info_file = "basic_info.pkl"
+        tfrecord_file = "data"
+        if dataset_type == 'train':
+            with open("{}_{}/{}".format(args.save_dir, timestamp, basic_info_file), 'wb') as pkl:
+                pickle.dump(basic_info, pkl)
+            print("Dumped basic info into file!")
+        record_files = convert_to_tfrecords(data, data_dict, tfrecord_filename="{}_{}/{}/{}".format(args.save_dir, timestamp, dataset_type, tfrecord_file))
+        with open("{}_{}/{}".format(args.save_dir, timestamp, dataset_type + "_records.txt"), 'w') as f:
+            f.writelines(record_files)
         print("Done!")
         #np.save('expert_data_{}.npy'.format(args.env), data)
 
 def main(args):
-    experts = ['car3','eyeglass','headphones','mouse','mug1']
+    experts = ['car3','eyeglass'] #,'headphones','mouse','mug1']
     generator = DataGenerator(experts=experts)
-    generator.generate_data()
+    generator.generate_data(num_rollouts=args.num_rollouts, dataset_type="train")
+    generator.generate_data(num_rollouts=args.num_rollouts, dataset_type="test")
+    generator.generate_data(num_rollouts=args.num_rollouts, dataset_type="val")
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -98,6 +100,9 @@ def parse_args():
 
 if __name__=="__main__":
     args = parse_args()
-    if not os.path.exists(args.save_dir):
-        os.makedirs(save_dir)
+    timestamp = time.strftime("%Y%m%d-%H%M%S")
+    os.makedirs(args.save_dir + "_" + timestamp)
+    os.makedirs(args.save_dir + "_" + timestamp + "/train")
+    os.makedirs(args.save_dir + "_" + timestamp + "/val")
+    os.makedirs(args.save_dir + "_" + timestamp + "/test")
     main(args)
