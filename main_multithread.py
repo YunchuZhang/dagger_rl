@@ -6,7 +6,7 @@ import json
 import pickle
 import numpy as np
 import tqdm
-from xml.etree import ElementTree as et
+# from xml.etree import ElementTree as et
 
 import warnings
 warnings.filterwarnings("ignore")
@@ -17,21 +17,53 @@ import gym
 import load_ddpg
 import policies.tf_utils as tfu
 
+from multiworld.envs.mujoco.cameras import init_multiple_cameras
 from policies.xyz_xyz_policy import XYZ_XYZ_Policy
 from rollouts import rollout, append_paths
 from softlearning.environments.gym.wrappers import NormalizeActionWrapper
 from utils import change_env_to_use_correct_mesh
 
-import matplotlib as mpl
-mpl.use('Agg')
-import matplotlib.pyplot as plt
-import seaborn as sns
-sns.set_style('whitegrid')
-
 multiworld.register_all_envs()
 
+from multiprocessing.pool import ThreadPool, Pool
+
 ## Define environment
-expert_list = ['car2', 'eyeglass','headphones', 'knife2', 'mouse', 'mug1']
+expert_list = ['car2', 'eyeglass','headphones']#, 'knife2', 'mouse', 'mug1']
+
+def do_rollouts(mesh, tid, per_thread_rollouts=5, policy=None):
+	print("This is thread ", tid)
+
+	## Define expert
+	load_path='/projects/katefgroup/sawyer_ddpg_weight/{}'.format(mesh)+'/save150'
+	params_path='/projects/katefgroup/sawyer_ddpg_weight/{}'.format(mesh)
+
+	expert_policy = load_ddpg.load_policy(load_path, params_path)
+
+	print("Initializing gym environment")
+	env = gym.make("SawyerPushAndReachEnvEasy-v0",reward_type='puck_success')
+
+	print("Starting rollouts")
+	if policy is None:
+	# Collect initial data
+		roll, _ = rollout(env,
+			per_thread_rollouts,
+			args.max_path_length,
+			expert_policy,
+			mesh = mesh, 
+			image_env=False)
+	else:
+		print("Performing rollouts after training....")
+		roll, _ = rollout(env,
+			args.num_dagger_rollouts,
+			args.max_path_length,
+			policy,
+			expert_policy,
+			mesh = mesh, 
+			image_env=False)
+
+	env.close()
+	tf.get_variable_scope().reuse_variables()
+	return roll
 
 def parse_args():
 	parser = argparse.ArgumentParser()
@@ -149,46 +181,60 @@ def main(args):
 	saver = tf.train.Saver()
 
 	# Load expert policy
-	init = True
+	data = None
+	num_threads = 5
+	per_thread_rollouts = args.num_rollouts / num_threads
 	for mesh in expert_list:
 		print('generating {} data'.format(mesh))
 		change_env_to_use_correct_mesh(mesh)
 
 		## Define expert
 		# /projects/katefgroup/sawyer_ddpg_weight
-		load_path='{}/{}'.format(args.expert_data_path, mesh)+'/save150'
-		params_path='{}/{}'.format(args.expert_data_path, mesh)
+		# load_path='{}/{}'.format(args.expert_data_path, mesh)+'/save150'
+		# params_path='{}/{}'.format(args.expert_data_path, mesh)
 
-		expert_policy = load_ddpg.load_policy(load_path, params_path)
-		env = gym.make("SawyerPushAndReachEnvEasy-v0", reward_type=args.reward_type)
+		# expert_policy = load_ddpg.load_policy(load_path, params_path)
+		# env = gym.make("SawyerPushAndReachEnvEasy-v0", reward_type=args.reward_type)
 		
-		# Collect initial data
-		if init is True:
-			data, _ = rollout(env,
-						args.num_rollouts,
-						args.max_path_length,
-						expert_policy,
-						mesh = mesh, image_env=False)
-			np.save('expert_data_{}.npy'.format(args.env), data)
-			init = False
-		else:
-			roll, _ = rollout(env,
-					args.num_rollouts,
-					args.max_path_length,
-					expert_policy,
-					mesh = mesh, image_env=False)
+		# # Collect initial data
+		# if init is True:
+		# 	data, _ = rollout(env,
+		# 				args.num_rollouts,
+		# 				args.max_path_length,
+		# 				expert_policy,
+		# 				mesh = mesh, image_env=False)
+		# 	np.save('expert_data_{}.npy'.format(args.env), data)
+		# 	init = False
+		# else:
+		# 	roll, _ = rollout(env,
+		# 			args.num_rollouts,
+		# 			args.max_path_length,
+		# 			expert_policy,
+		# 			mesh = mesh, image_env=False)
+		# 	data = append_paths(data, roll)
+		# env.close()
+		# tf.get_variable_scope().reuse_variables()
+
+
+		pool = ThreadPool(processes=num_threads)
+		async_results = [pool.apply_async(do_rollouts, (mesh, i, per_thread_rollouts,)) for i in range(num_threads)]
+
+		all_rollouts = []
+		for i in range(num_threads):
+			all_rollouts.append(async_results[i].get())
+
+		for roll in all_rollouts:
 			data = append_paths(data, roll)
-		env.close()
-		tf.get_variable_scope().reuse_variables()
 
 	## Start training
 
+	#import pdb; pdb.set_trace()
 	# Start for loop
 	global_step = 0
 
 	for i in tqdm.tqdm(range(args.num_iterations)):
 		# Parse dataset for supervised learning
-		num_samples = data['achieved_goal'].shape[0]
+		num_samples = data['desired_goal_abs'].shape[0]
 		print('num_samples',num_samples)
 		idx = np.arange(num_samples)
 		np.random.shuffle(idx)
@@ -210,35 +256,45 @@ def main(args):
 		for mesh in expert_list:
 			print('generating {} dagger data'.format(mesh))
 			change_env_to_use_correct_mesh(mesh)
-			## Define expert
-			load_path='{}/{}'.format(args.expert_data_path, mesh)+'/save150'
-			params_path='{}/{}'.format(args.expert_data_path, mesh)
+			# ## Define expert
+			# load_path='{}/{}'.format(args.expert_data_path, mesh)+'/save150'
+			# params_path='{}/{}'.format(args.expert_data_path, mesh)
 
-			expert_policy = load_ddpg.load_policy(load_path, params_path)
-			env = gym.make("SawyerPushAndReachEnvEasy-v0",reward_type=args.reward_type)
+			# expert_policy = load_ddpg.load_policy(load_path, params_path)
+			# env = gym.make("SawyerPushAndReachEnvEasy-v0",reward_type=args.reward_type)
 			
-			print("Performing rollouts after training....")
-			roll, plot_data = rollout(env,
-				args.num_dagger_rollouts,
-				args.max_path_length,
-				policy,
-				expert_policy,
-				mesh = mesh, 
-				image_env=False)
-			env.close()
-			tf.get_variable_scope().reuse_variables()
-			data = append_paths(data, roll)
+			# print("Performing rollouts after training....")
+			# roll, plot_data = rollout(env,
+			# 	args.num_dagger_rollouts,
+			# 	args.max_path_length,
+			# 	policy,
+			# 	expert_policy,
+			# 	mesh = mesh, 
+			# 	image_env=False)
+			# env.close()
+			# tf.get_variable_scope().reuse_variables()
+			# data = append_paths(data, roll)
+			
+			pool = ThreadPool(processes=num_threads)
+			async_results = [pool.apply_async(do_rollouts, (mesh, i, per_thread_rollouts, policy,)) for i in range(num_threads)]
 
-			for key in plotters.keys(): plotters[key].append(plot_data[key])
+			all_rollouts = []
+			for i in range(num_threads):
+				all_rollouts.append(async_results[i].get())
+
+			for roll in all_rollouts:
+				data = append_paths(data, roll)
+
+			#for key in plotters.keys(): plotters[key].append(plot_data[key])
 
 
-		minro,maxro,meanro,meanfo= session.run([min_return_op,max_return_op,mean_return_op,mean_final_success_op],feed_dict=\
-			{min_return:np.min(plotters['min_return']),max_return:np.max(plotters['max_return']),mean_return:np.mean(plotters['mean_return']),\
-			mean_final_success:np.mean(plotters['mean_final_success'])})
-		set_writer.add_summary(minro,global_step=global_step)
-		set_writer.add_summary(maxro,global_step=global_step)
-		set_writer.add_summary(meanro,global_step=global_step)
-		set_writer.add_summary(meanfo,global_step=global_step)
+		# minro,maxro,meanro,meanfo= session.run([min_return_op,max_return_op,mean_return_op,mean_final_success_op],feed_dict=\
+		# 	{min_return:np.min(plotters['min_return']),max_return:np.max(plotters['max_return']),mean_return:np.mean(plotters['mean_return']),\
+		# 	mean_final_success:np.mean(plotters['mean_final_success'])})
+		# set_writer.add_summary(minro,global_step=global_step)
+		# set_writer.add_summary(maxro,global_step=global_step)
+		# set_writer.add_summary(meanro,global_step=global_step)
+		# set_writer.add_summary(meanfo,global_step=global_step)
 
 		# for key in plotters.keys(): plotters[key].append(plot_data[key])
 

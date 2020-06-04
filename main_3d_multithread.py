@@ -24,11 +24,7 @@ from rollouts import rollout, append_paths
 from softlearning.environments.gym.wrappers import NormalizeActionWrapper
 from utils import change_env_to_use_correct_mesh
 
-import matplotlib as mpl
-mpl.use('Agg')
-import matplotlib.pyplot as plt
-import seaborn as sns
-sns.set_style('whitegrid')
+from multiprocessing.pool import ThreadPool, Pool
 
 multiworld.register_all_envs()
 
@@ -67,6 +63,47 @@ def parse_args():
 	args = parser.parse_args()
 
 	return args
+
+def do_rollouts(mesh, per_thread_rollouts=5):
+	print('generating {} dagger data'.format(mesh))
+	change_env_to_use_correct_mesh(mesh)
+	## Define expert
+	load_path='/projects/katefgroup/sawyer_ddpg_weight/{}'.format(mesh)+'/save150'
+	params_path='/projects/katefgroup/sawyer_ddpg_weight/{}'.format(mesh)
+
+	expert_policy = load_ddpg.load_policy(load_path, params_path)
+
+	print("Initializing gym environment")
+	env = gym.make("SawyerPushAndReachEnvEasy-v0",reward_type='puck_success')
+	camera_space={'dist_low': 0.7,'dist_high': 1.5,'angle_low': 0,'angle_high': 180,'elev_low': -180,'elev_high': -90}
+	print("Enclosing ImageEnv wrapper ")
+	env = ImageEnv(
+			wrapped_env=env,
+			imsize=64,
+			normalize=True,
+			camera_space=camera_space,
+			init_camera=(lambda x: init_multiple_cameras(x, camera_space)),
+			num_cameras=4,#4 for training
+			depth=True,
+			cam_info=True,
+			reward_type='wrapped_env',
+			flatten=False
+		)
+	print("Starting rollouts")
+	# Collect initial data
+	roll, _ = rollout(env,
+		per_thread_rollouts,
+		args.max_path_length,
+		policy,
+		expert_policy,
+		mesh = mesh)
+
+	env.close()
+	tf.get_variable_scope().reuse_variables()
+	return roll
+
+def print_squares(x):
+	print("Square of {} : {}".format(x, x*x))
 
 def main(args):
 
@@ -114,13 +151,6 @@ def main(args):
 	## Define policy network
 	policy = Tensor_XYZ_Policy("dagger_tensor_xyz", env)
 
-	## Define DAGGER loss
-	# goal_obs = tfu.get_placeholder(name="goal_obs",
-	# 						dtype=tf.float32,
-	# 						shape=[None, policy.state_obs_dim + policy.state_desired_dim])
-	# crop = tfu.get_placeholder(name="crop",
-	# 						dtype=tf.float32,
-	# 						shape=[None, 16, 16, 8, 32])
 	act = tfu.get_placeholder(name="act",
 							dtype=tf.float32,
 							shape=[None, policy.act_dim])
@@ -131,8 +161,6 @@ def main(args):
 
 	step = tf.Variable(0, trainable=False)
 
-	# lr 0.002 0.001
-	# decay 0.96 0.8
 	lr = tf.train.exponential_decay(learning_rate = 0.001,
 									global_step = step,
 									decay_steps = 20000,
@@ -167,56 +195,61 @@ def main(args):
 
 	saver = tf.train.Saver()
 	# Load expert policy
-	init = True
+	data = None
 	for mesh in expert_list:
-		print('generating {} data'.format(mesh))
-		change_env_to_use_correct_mesh(mesh)
-		## Define expert
-		# /projects/katefgroup/sawyer_ddpg_weight
-		load_path='/projects/katefgroup/sawyer_ddpg_weight/{}'.format(mesh)+'/save150'
-		params_path='/projects/katefgroup/sawyer_ddpg_weight/{}'.format(mesh)
+		# print('generating {} data'.format(mesh))
+		# change_env_to_use_correct_mesh(mesh)
+		# ## Define expert
+		# # /projects/katefgroup/sawyer_ddpg_weight
+		# load_path='/projects/katefgroup/sawyer_ddpg_weight/{}'.format(mesh)+'/save150'
+		# params_path='/projects/katefgroup/sawyer_ddpg_weight/{}'.format(mesh)
 
-		# if mesh =='mouse':
-		# 	load_path='/projects/katefgroup/apokle/ckpts/{}'.format(mesh)+'/save99'
+		# # if mesh =='mouse':
+		# # 	load_path='/projects/katefgroup/apokle/ckpts/{}'.format(mesh)+'/save99'
 
-		# expert_policy, env = load_expert.get_policy(checkpoint_path)
+		# # expert_policy, env = load_expert.get_policy(checkpoint_path)
 
-		expert_policy = load_ddpg.load_policy(load_path, params_path)
-		env = gym.make("SawyerPushAndReachEnvEasy-v0",reward_type='puck_success')
-		camera_space={'dist_low': 0.7,'dist_high': 1.5,'angle_low': 0,'angle_high': 180,'elev_low': -180,'elev_high': -90}
+		# expert_policy = load_ddpg.load_policy(load_path, params_path)
+		# env = gym.make("SawyerPushAndReachEnvEasy-v0",reward_type='puck_success')
+		# camera_space={'dist_low': 0.7,'dist_high': 1.5,'angle_low': 0,'angle_high': 180,'elev_low': -180,'elev_high': -90}
 
-		env = ImageEnv(
-				wrapped_env=env,
-				imsize=64,
-				normalize=True,
-				camera_space=camera_space,
-				init_camera=(lambda x: init_multiple_cameras(x, camera_space)),
-				num_cameras=4,#4 for training
-				depth=True,
-				cam_info=True,
-				reward_type='wrapped_env',
-				flatten=False
-			)
+		# env =  ImageEnv(
+		# 		wrapped_env=env,
+		# 		imsize=64,
+		# 		normalize=True,
+		# 		camera_space=camera_space,
+		# 		init_camera=(lambda x: init_multiple_cameras(x, camera_space)),
+		# 		num_cameras=4,#4 for training
+		# 		depth=True,
+		# 		cam_info=True,
+		# 		reward_type='wrapped_env',
+		# 		flatten=False
+		# 	)
 
-		# Collect initial data
-		if init is True:
-			data, _ = rollout(env,
-						args.num_rollouts,
-						args.max_path_length,
-						expert_policy,
-						mesh = mesh,
-						is_init_data=True)
-			np.save('expert_data_{}.npy'.format(args.env), data)
-			init = False
-		else:
-			roll, _ = rollout(env,
-					args.num_rollouts,
-					args.max_path_length,
-					expert_policy,
-					mesh = mesh)
-			data = append_paths(data, roll)
-		env.close()
-		tf.get_variable_scope().reuse_variables()
+		# # Collect initial data
+		# roll, _ = rollout(env,
+		# 		args.num_rollouts,
+		# 		args.max_path_length,
+		# 		expert_policy,
+		# 		mesh = mesh)
+		# data = append_paths(data, roll)
+		# env.close()
+		# tf.get_variable_scope().reuse_variables()
+
+
+		num_threads = 5
+		per_thread_rollouts = args.num_rollouts / num_threads
+
+		pool = ThreadPool(processes=num_threads)
+		async_results = [pool.apply_async(do_rollouts, (mesh, per_thread_rollouts,)) for i in range(num_threads)]
+
+		print("Async Results : ")
+		print(async_results)
+
+		import pdb; pdb.set_trace()
+		roll = [result.get() for result in async_results]
+
+		data = append_paths(data, roll)
 	## Start training
 
 	# Start for loop
@@ -248,40 +281,16 @@ def main(args):
 		if (i + 1) % 2 == 0:
 			# Perform rollouts
 			for mesh in expert_list:
-				print('generating {} dagger data'.format(mesh))
-				change_env_to_use_correct_mesh(mesh)
-				## Define expert
-				load_path='/projects/katefgroup/sawyer_ddpg_weight/{}'.format(mesh)+'/save150'
-				params_path='/projects/katefgroup/sawyer_ddpg_weight/{}'.format(mesh)
+				num_threads = 5
+				per_thread_rollouts = args.num_rollouts / num_threads
 
-				expert_policy = load_ddpg.load_policy(load_path, params_path)
-				env = gym.make("SawyerPushAndReachEnvEasy-v0",reward_type='puck_success')
-				camera_space={'dist_low': 0.7,'dist_high': 1.5,'angle_low': 0,'angle_high': 180,'elev_low': -180,'elev_high': -90}
+				pool = ThreadPool(processes=num_threads)
+				async_result = pool.apply_async(do_rollouts, (mesh, per_thread_rollouts,))
 
-				env = ImageEnv(
-						wrapped_env=env,
-						imsize=64,
-						normalize=True,
-						camera_space=camera_space,
-						init_camera=(lambda x: init_multiple_cameras(x, camera_space)),
-						num_cameras=4,#4 for training
-						depth=True,
-						cam_info=True,
-						reward_type='wrapped_env',
-						flatten=False
-					)
-				# Collect initial data
-				roll, plot_data = rollout(env,
-					args.num_rollouts,
-					args.max_path_length,
-					policy,
-					expert_policy,
-					mesh = mesh)
+				roll = async_result.get()
 
-				env.close()
 				tf.get_variable_scope().reuse_variables()
 				data = append_paths(data, roll)
-
 				for key in plotters.keys(): plotters[key].append(plot_data[key])
 
 

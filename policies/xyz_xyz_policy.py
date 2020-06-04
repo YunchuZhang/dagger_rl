@@ -1,11 +1,11 @@
 import tensorflow as tf
 import numpy as np
-import tf_utils as tfu
+import policies.tf_utils as tfu
 
 
 KEYS = [#'observation_with_orientation',
 		'desired_goal',
-		'achieved_goal',
+		#'achieved_goal_abs',
 		'observation',
 		# 'state_observation',
 		# 'state_desired_goal',
@@ -30,7 +30,6 @@ class XYZ_XYZ_Policy:
 			self.scope = tf.get_variable_scope().name
 			self.build(hidden_sizes)
 
-
 	def build(self, hidden_sizes):
 
 		ob = tfu.get_placeholder(name="ob",
@@ -39,16 +38,15 @@ class XYZ_XYZ_Policy:
 		
 		out = ob
 		for i, hidden_size in enumerate(hidden_sizes):
-			#import pdb; pdb.set_trace()
 			out = tf.nn.relu(tfu.dense(out,
 									hidden_size,
 									"policyfc%i" % (i+1),
-									weight_init=tfu.normc_initializer(1.0)))
+									weight_init=tfu.normc_initializer(1)))
 
 		action = tfu.dense(out,
 						self.act_dim,
 						"policyfinal",
-						weight_init=tfu.normc_initializer(0.01))
+						weight_init=tfu.normc_initializer(1))
 
 		self.ac = action
 		self._act = tfu.function([ob], self.ac)

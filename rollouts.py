@@ -6,7 +6,7 @@ import getpass
 # sys.path.append("/home/{}".format(getpass.getuser()))
 # from discovery.backend.mujoco_online_inputs import get_inputs
 import tensorflow as tf
-import tf_utils as tfu
+
 EXPERT_KEYS = [	'observation',
 				'desired_goal',
 				'achieved_goal',
@@ -17,15 +17,21 @@ baseline_short_keys = [	'observation',
 				'achieved_goal']
 
 short_keys = [	'observation',
-				'observation_with_orientation', 
-				'desired_goal', 
-				'achieved_goal', 
-				'image_observation', 
+				'observation_with_orientation',
+				'observation_abs',
+				'desired_goal',
+				'desired_goal_abs',
+				'achieved_goal',
+				'achieved_goal_abs',
+				'image_observation',
+				'object_pose',
+				# 'object_pos',
 				# 'image_desired_goal', 
 				# 'image_achieved_goal', 
-				'depth_observation', 
+				'depth_observation',
 				# 'depth_desired_goal', 
-				'cam_info_observation']
+				'cam_info_observation',
+				]
 				# 'cam_info_goal']
 
 
@@ -53,11 +59,12 @@ def convert_to_active_observation(x):
 		x[key] for key in EXPERT_KEYS], axis=-1)
 	return [flattened_observation[None]]
 
-def return_stats(rewards, count_infos):
+def return_stats(rewards, count_infos, goal_reach_percentage):
 	return {'min_return': np.min(rewards),
 			'max_return': np.max(rewards),
 			'mean_return': np.mean(rewards),
-			'mean_final_success': np.mean(count_infos)}
+			'mean_final_success': np.mean(count_infos),
+			'success_rate': goal_reach_percentage}
 
 def rollout(env,
 			num_rollouts,
@@ -66,7 +73,9 @@ def rollout(env,
 			expert_policy=None,
 			mesh = None, 
 			image_env= True,
-			data_gen=False):
+			is_test=False,
+			is_init_data=False,
+			scale=1.0):
 	# env_keys = env.observation_space.spaces.keys()
 	if image_env:
 		env_keys = short_keys
@@ -104,8 +113,9 @@ def rollout(env,
 	rewards = []
 	count_infos = []
 	img = 0
+	count = 0
 	while len(paths) < (num_rollouts):
-
+		print(len(paths))
 		t = 0
 		path = {key: [] for key in env_keys}
 		images = []
@@ -116,8 +126,13 @@ def rollout(env,
 		obj_sizes = []
 		puck_zs = []
 		observation = env.reset()
+
+		#print("Before rescaling obs ", observation["observation"])
+		observation["observation"][5] *= scale
+		#print("After rescaling obs ", observation["observation"])
 		# cv2.imwrite('store/{}.png'.format(img),goal_img)
 		# img = img + 1
+		first_reward = True
 		R = 0
 		for t in range(path_length):
 			# observation = observation_converter(observation)
@@ -136,6 +151,10 @@ def rollout(env,
 				expert_action = action
 
 			observation, reward, terminal, info = env.step(action)
+			
+			#print("Before rescaling obs ", observation["observation"])
+			observation["observation"][5] *= scale
+			#print("After rescaling obs ", observation["observation"])
 
 			# image = env.render(mode='rgb_array') #cv2 show image
 			# cv2.imwrite('store/'+'{}_'.format(mesh)+'{}.png'.format(img),image)
@@ -153,35 +172,42 @@ def rollout(env,
 			infos.append(info)
 			R += reward
 
-			if terminal:
-				print('episode_rew={}'.format(R))
+			if reward == 0 and first_reward:
+				count += 1
+				print("Episode Reward=", R, reward)
+				first_reward = False
 
-				if isinstance(policy, GaussianPolicy):
-					policy.reset()
-				break
+			# if terminal:
+			# 	print('episode_rew={}'.format(R))
+
+			# 	if isinstance(policy, GaussianPolicy):
+			# 		policy.reset()
+			# 	break
+		#------------------------------------------------------------------------------
 		# If R == path_length, the episode very likely failed; do not append such paths
-		if R > -path_length:
-			assert len(infos) == t + 1
-			path = {key: np.stack(path[key], axis=0) for key in env_keys}
-			path['actions'] = np.stack(actions, axis=0)
-			path['terminals'] = np.stack(terminals, axis=0).reshape(-1,1)
-			if image_env:
-				path['obj_sizes'] = np.stack(obj_sizes, axis=0)
-			path['puck_zs'] = np.stack(puck_zs, axis=0).reshape(-1,1)
-			if isinstance(policy, GaussianPolicy) and len(path['terminals']) >= path_length:
-				continue
-			elif not isinstance(policy, GaussianPolicy) and len(path['terminals'])==1:
-				continue
-			rewards.append(R)
-			count_infos.append(infos[-1]['puck_success'])
-			paths.append(path)
+		# Stopping this step for now --------------------------------------------------
+		print("Reward ", R)
+		#if is_test or (is_init_data and (R > -path_length)) or (len(actions) > 0):
+		path = {key: np.stack(path[key], axis=0) for key in env_keys}
+		path['actions'] = np.stack(actions, axis=0)
+		path['terminals'] = np.stack(terminals, axis=0).reshape(-1,1)
+		if image_env:
+			path['obj_sizes'] = np.stack(obj_sizes, axis=0)
+		path['puck_zs'] = np.stack(puck_zs, axis=0).reshape(-1,1)
+		if isinstance(policy, GaussianPolicy) and len(path['terminals']) >= path_length:
+			continue
+		elif not isinstance(policy, GaussianPolicy) and len(path['terminals'])==1:
+			continue
+		rewards.append(R)
+		count_infos.append(infos[-1]['puck_success'])
+		paths.append(path)
 
 	# print('Minimum return: {}'.format(np.min(rewards)))
 	# print('Maximum return: {}'.format(np.max(rewards)))
 	# print('Mean return: {}'.format(np.mean(rewards)))
 	# print('Mean final success: {}'.format(np.mean(count_infos)))
-
-	return _clean_paths(paths), return_stats(rewards, count_infos)
+	print('Goal Reach Percentage: {}'.format(count/num_rollouts))
+	return _clean_paths(paths), return_stats(rewards, count_infos, count/num_rollouts)
 
 def _clean_paths(paths):
 	"""Cleaning up paths to only contain relevant information like
@@ -193,6 +219,10 @@ def _clean_paths(paths):
 	return clean_paths
 
 def append_paths(main_paths, paths):
+	if main_paths is None or len(main_paths) == 0:
+		return paths
+	if len(paths) == 0:
+		return main_paths
 	""" Appending the rollouts obtained with already exisiting data."""
 	paths = {key: np.vstack((main_paths[key], paths[key])) for key in main_paths.keys()}
 	return paths

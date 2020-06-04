@@ -6,7 +6,7 @@ import os
 import glob
 import scipy.misc
 import tensorflow as tf
-import hyperparams as hyp
+import hyperparams_new as hyp
 
 EPS = 1e-6
 

@@ -1,7 +1,7 @@
 import tensorflow as tf
 import tensorflow.contrib.slim as slim
 import numpy as np
-import tf_utils as tfu
+import policies.tf_utils as tfu
 import os
 import sys
 import getpass
@@ -35,11 +35,7 @@ class Tensor_XYZ_Policy:
 		name = "01_m64x64x64_p32x32_1e-3_F32_Oc_c1_s.1_Ve_d32_E32_a.8_i.2_push_and_reach_random_data_train_a35"
 		checkpoint_dir_ = os.path.join("checkpoints", name)
 		log_dir_ = os.path.join("logs_mujoco_offline", name)
-		self.map3D = MUJOCO_ONLINE(
-								# obj_size,
-								# puck_z,
-								checkpoint_dir=checkpoint_dir_,
-								log_dir=log_dir_)
+		self.map3D = MUJOCO_ONLINE(log_dir = log_dir_)
 		self.map3D.build_main_graph()
 		# self.map3D.build_graph() # Ensure no initialization or summaries are made.
 

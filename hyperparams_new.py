@@ -2,7 +2,7 @@ import os
 import getpass
 
 # Updated the values 
-B = 8 #4 # batch size
+B = 64 #4 # batch size
 H = 64 #240 # height
 W = 64 #320 # width
 S = 4
@@ -27,4 +27,4 @@ N = 50 # number of boxes produced by the rcnn (not all are good)
 K = 1 # number of boxes to actually use
 # S = 2 # seq length
 T = 256 # height & width of birdview map
-V = 100000 # num velodyne points
+V = 20000 # num velodyne points

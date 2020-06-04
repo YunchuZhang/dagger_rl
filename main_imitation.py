@@ -15,8 +15,9 @@ import tensorflow as tf
 import multiworld
 import gym
 import load_ddpg
-import policies.tf_utils as tfu
+import tf_utils as tfu
 
+from multiworld.envs.mujoco.cameras import init_multiple_cameras
 from policies.xyz_xyz_policy import XYZ_XYZ_Policy
 from rollouts import rollout, append_paths
 from softlearning.environments.gym.wrappers import NormalizeActionWrapper
@@ -31,7 +32,7 @@ sns.set_style('whitegrid')
 multiworld.register_all_envs()
 
 ## Define environment
-expert_list = ['car2', 'eyeglass','headphones', 'knife2', 'mouse', 'mug1']
+expert_list = ['car2','eyeglass','headphones']#, 'knife2', 'mouse', 'mug1']
 
 def parse_args():
 	parser = argparse.ArgumentParser()
@@ -60,7 +61,7 @@ def parse_args():
 						help='Path to some initial expert data collected.')
 	parser.add_argument('--max-path-length', '-l', type=int, default=50)
 	parser.add_argument('--num-rollouts', '-n', type=int, default=500)
-	parser.add_argument('--num-dagger-rollouts', '-n-dgr', type=int, default=50)
+	parser.add_argument('--num-dagger-rollouts', '-n-dgr', type=int, default=10)
 	parser.add_argument('--test-num-rollouts', '-tn', type=int, default=20)
 	parser.add_argument('--num-iterations', type=int, default=50)
 	parser.add_argument('--mb_size', type=int, default=8)
@@ -80,16 +81,16 @@ def main(args):
 				'mean_final_success': []}
 
 
-	name = "baseline_3obj_no_staircase_lr_0.005_steps_20000_decay_0.96_shuffle"
+	name = "baseline_3obj_imitation_shuffle_{}".format(args.num_rollouts)
 	log_dir_ = os.path.join("logs_sawyer_baseline_dagger", name)
-	checkpoint_dir_ = os.path.join("ckpt_sawyer_baseline_dagger", name)
+	checkpoint_dir_ = os.path.join("ckpt_sawyer_baseline_imitation", name)
 	set_writer = tf.summary.FileWriter(log_dir_ + '/train', None)
 
 	## Define expert
 	env = gym.make("SawyerPushAndReachEnvEasy-v0",reward_type=args.reward_type)
 
 	## Define policy network
-	policy = XYZ_XYZ_Policy("dagger_xyz_xyz", env, hidden_sizes=[64, 64, 32])
+	policy = XYZ_XYZ_Policy("dagger_xyz_xyz", env)
 
 	## Define DAGGER loss
 	ob = tfu.get_placeholder(name="ob",
@@ -111,21 +112,19 @@ def main(args):
 	# lr 0.002 0.001
 	# decay 0.96 0.8
 
-	lr = tf.train.exponential_decay(learning_rate = 0.001,
+	lr = tf.train.exponential_decay(learning_rate = 0.005,
 									global_step = step,
 									decay_steps = 20000,
-									decay_rate = 0.75,
+									decay_rate = 0.96,
 									staircase=False)
 
-	# Exclude map3D network from gradient computation
 	freeze_patterns = []
 	freeze_patterns.append("feat")
 
 	loss = tf.reduce_mean(tf.squared_difference(policy.ac, act))
-	train_vars = tf.contrib.framework.filter_variables( tf.trainable_variables(),
+	train_vars = tf.contrib.framework.filter_variables(tf.trainable_variables(),
 														exclude_patterns=freeze_patterns)
-	# tf.get_variable_scope().reuse_variables()
-	# lr = 1e-3
+	# lr = 5e-3
 	opt = tf.train.AdamOptimizer(learning_rate=lr, name="adam_optimizer").minimize(loss,
 														var_list=train_vars,
 														global_step=step)
@@ -192,7 +191,6 @@ def main(args):
 		print('num_samples',num_samples)
 		idx = np.arange(num_samples)
 		np.random.shuffle(idx)
-		# Make one whole traversal through the dataset for training
 		for j in range(num_samples // args.mb_size):
 			# st = i * args.mb_size
 			# end = min(num_samples, (i+1) * args.mb_size)
@@ -201,56 +199,23 @@ def main(args):
 			np.random.shuffle(idx)
 			obs = policy.train_process_observation(data, idx[:args.mb_size])
 			act_train = data['actions'][idx[:args.mb_size]]
-			loss, _ = session.run([loss_op,opt], feed_dict={ob:obs, act:act_train})
+
+			loss, opt_var = session.run([loss_op,opt], feed_dict={ob:obs, act:act_train})
 			set_writer.add_summary(loss, global_step=global_step)
 			global_step = global_step + 1
 
-		# Generate some new dagger data after every few training iterations
-		# Perform rollouts
-		for mesh in expert_list:
-			print('generating {} dagger data'.format(mesh))
-			change_env_to_use_correct_mesh(mesh)
-			## Define expert
-			load_path='{}/{}'.format(args.expert_data_path, mesh)+'/save150'
-			params_path='{}/{}'.format(args.expert_data_path, mesh)
-
-			expert_policy = load_ddpg.load_policy(load_path, params_path)
-			env = gym.make("SawyerPushAndReachEnvEasy-v0",reward_type=args.reward_type)
-			
-			print("Performing rollouts after training....")
-			roll, plot_data = rollout(env,
-				args.num_dagger_rollouts,
-				args.max_path_length,
-				policy,
-				expert_policy,
-				mesh = mesh, 
-				image_env=False)
-			env.close()
-			tf.get_variable_scope().reuse_variables()
-			data = append_paths(data, roll)
-
-			for key in plotters.keys(): plotters[key].append(plot_data[key])
-
-
-		minro,maxro,meanro,meanfo= session.run([min_return_op,max_return_op,mean_return_op,mean_final_success_op],feed_dict=\
-			{min_return:np.min(plotters['min_return']),max_return:np.max(plotters['max_return']),mean_return:np.mean(plotters['mean_return']),\
-			mean_final_success:np.mean(plotters['mean_final_success'])})
-		set_writer.add_summary(minro,global_step=global_step)
-		set_writer.add_summary(maxro,global_step=global_step)
-		set_writer.add_summary(meanro,global_step=global_step)
-		set_writer.add_summary(meanfo,global_step=global_step)
-
-		# for key in plotters.keys(): plotters[key].append(plot_data[key])
-
-		if (i+1)%args.checkpoint_freq==0:
+		if (i+1)%args.checkpoint_freq ==0:
 			savemodel(saver, session, checkpoint_dir_, i+1)
 
-	plotting_data(plotters)
-	session.__exit__()
+	# plotting_data(plotters)
+	# session.__exit__()
 	session.close()
 
 
 def test(args):
+
+	## Define environment
+	if args.mesh is not None: change_env_to_use_correct_mesh(args.mesh)
 
 	# Dictionary of values to plot
 	plotters = {'min_return': [],
@@ -262,10 +227,10 @@ def test(args):
 	env = gym.make("SawyerPushAndReachEnvEasy-v0",reward_type=args.reward_type)
 	
 	## Define policy network
-	policy = XYZ_XYZ_Policy("dagger_xyz_xyz", env, hidden_sizes=[64, 64, 32])
+	policy = XYZ_XYZ_Policy("dagger_xyz_xyz", env)
 
 	# Start session
-	session = tfu.make_session(num_cpu=2)
+	session = tfu.make_session(num_cpu=40)
 	session.__enter__()
 
 	session = tf.get_default_session()
@@ -274,7 +239,6 @@ def test(args):
 
 	ckpt = tf.train.get_checkpoint_state(args.checkpoint_path)
 	print("checkpoint State ", ckpt)
-
 	saver = tf.train.Saver()
 	if ckpt and ckpt.model_checkpoint_path:
 		ckpt_name = os.path.basename(ckpt.model_checkpoint_path)

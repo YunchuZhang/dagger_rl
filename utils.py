@@ -2,11 +2,12 @@ import os
 from xml.etree import ElementTree as et
 
 def change_env_to_use_correct_mesh(mesh):
-	path_to_xml = os.path.join('/Users/apokle/Documents/goal_conditioned_policy/multiworld/multiworld/envs/assets/sawyer_xyz/sawyer_push_box.xml')
+	path_to_xml = os.path.join('/home/apokle/multiworld/multiworld/envs/assets/sawyer_xyz/sawyer_push_box.xml')
+	#path_to_xml = os.path.join('/Users/apokle/Documents/goal_conditioned_policy/multiworld/multiworld/envs/assets/sawyer_xyz/sawyer_push_box.xml')
 	tree = et.parse(path_to_xml)
 	root = tree.getroot()
 	[x.attrib for x in root.iter('geom')][0]['mesh']=mesh
-
+	#[x.attrib for x in root.iter('geom')][0]['size']=scale
 	 #set the masses, inertia and friction in a plausible way
 
 	physics_dict = {}
@@ -50,4 +51,15 @@ def change_env_to_use_correct_mesh(mesh):
 	# [x.attrib for x in root.iter('inertial')][0]['diaginertia'] = physics_dict[mesh][1]
 	[x.attrib for x in root.iter('geom')][0]['friction'] = physics_dict[mesh][2]
 
+	tree.write(path_to_xml)
+
+def change_env_to_rescale_mesh(mesh, scale=1.0):
+	path_to_xml = os.path.join('/home/apokle/multiworld/multiworld/envs/assets/sawyer_xyz/shared_config.xml')
+	#path_to_xml = os.path.join('/Users/apokle/Documents/goal_conditioned_policy/multiworld/multiworld/envs/assets/sawyer_xyz/shared_config.xml')
+	tree = et.parse(path_to_xml)
+	root = tree.getroot()
+	# import pdb; pdb.set_trace()
+	for x in root.iter('mesh'):
+		if x.attrib['name'] == mesh:
+			x.attrib['scale'] = "{} {} {}".format(scale, scale, scale)
 	tree.write(path_to_xml)

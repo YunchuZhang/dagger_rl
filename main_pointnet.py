@@ -17,7 +17,9 @@ import gym
 import load_ddpg
 import policies.tf_utils as tfu
 
-from policies.xyz_xyz_policy import XYZ_XYZ_Policy
+from multiworld.core.image_env import ImageEnv
+from multiworld.envs.mujoco.cameras import init_multiple_cameras
+from policies.pointnet_xyz_policy import PointNet_XYZ_Policy
 from rollouts import rollout, append_paths
 from softlearning.environments.gym.wrappers import NormalizeActionWrapper
 from utils import change_env_to_use_correct_mesh
@@ -30,8 +32,11 @@ sns.set_style('whitegrid')
 
 multiworld.register_all_envs()
 
-## Define environment
-expert_list = ['car2', 'eyeglass','headphones', 'knife2', 'mouse', 'mug1']
+import threading
+
+expert_list = ['car2']#, 'eyeglass','headphones']#, 'knife2', 'mouse', 'mug1']
+
+camera_space={'dist_low': 0.7,'dist_high': 1.5,'angle_low': 0,'angle_high': 180,'elev_low': -180,'elev_high': -90}
 
 def parse_args():
 	parser = argparse.ArgumentParser()
@@ -87,16 +92,23 @@ def main(args):
 
 	## Define expert
 	env = gym.make("SawyerPushAndReachEnvEasy-v0",reward_type=args.reward_type)
-
+	env = ImageEnv(
+			wrapped_env=env,
+			imsize=64,
+			normalize=True,
+			camera_space=camera_space,
+			init_camera=(lambda x: init_multiple_cameras(x, camera_space)),
+			num_cameras=4,#4 for training
+			depth=True,
+			cam_info=True,
+			reward_type='wrapped_env',
+			flatten=False
+		)
+	is_training = tf.constant(True, dtype=tf.bool)
 	## Define policy network
-	policy = XYZ_XYZ_Policy("dagger_xyz_xyz", env, hidden_sizes=[64, 64, 32])
+	policy = PointNet_XYZ_Policy("dagger_pointnet_xyz", env, hidden_sizes=[64, 64, 32], is_training=is_training)
 
-	## Define DAGGER loss
-	ob = tfu.get_placeholder(name="ob",
-							dtype=tf.float32,
-							shape=[None, policy.obs_dim])
-
-	## Define DAGGER loss
+	#Placeholder for actions
 	act = tfu.get_placeholder(name="act",
 							dtype=tf.float32,
 							shape=[None, policy.act_dim])
@@ -117,9 +129,9 @@ def main(args):
 									decay_rate = 0.75,
 									staircase=False)
 
-	# Exclude map3D network from gradient computation
+	# Exclude ddpg features from training variables
 	freeze_patterns = []
-	freeze_patterns.append("feat")
+	freeze_patterns.append("ddpg")
 
 	loss = tf.reduce_mean(tf.squared_difference(policy.ac, act))
 	train_vars = tf.contrib.framework.filter_variables( tf.trainable_variables(),
@@ -161,14 +173,26 @@ def main(args):
 
 		expert_policy = load_ddpg.load_policy(load_path, params_path)
 		env = gym.make("SawyerPushAndReachEnvEasy-v0", reward_type=args.reward_type)
-		
+		env = ImageEnv(
+				wrapped_env=env,
+				imsize=64,
+				normalize=True,
+				camera_space=camera_space,
+				init_camera=(lambda x: init_multiple_cameras(x, camera_space)),
+				num_cameras=4,#4 for training
+				depth=True,
+				cam_info=True,
+				reward_type='wrapped_env',
+				flatten=False
+			)
+
 		# Collect initial data
 		if init is True:
 			data, _ = rollout(env,
 						args.num_rollouts,
 						args.max_path_length,
 						expert_policy,
-						mesh = mesh, image_env=False)
+						mesh = mesh, image_env=True, is_init_data=True)
 			np.save('expert_data_{}.npy'.format(args.env), data)
 			init = False
 		else:
@@ -176,7 +200,7 @@ def main(args):
 					args.num_rollouts,
 					args.max_path_length,
 					expert_policy,
-					mesh = mesh, image_env=False)
+					mesh = mesh, image_env=True, is_init_data=True)
 			data = append_paths(data, roll)
 		env.close()
 		tf.get_variable_scope().reuse_variables()
@@ -199,9 +223,11 @@ def main(args):
 			# obs = policy.train_process_observation(data, idx[st:end])
 			# act_train = data['actions'][idx[st:end]]
 			np.random.shuffle(idx)
-			obs = policy.train_process_observation(data, idx[:args.mb_size])
+			feed = policy.train_process_observation(data, idx[:args.mb_size])			
+			import pdb; pdb.set_trace()
 			act_train = data['actions'][idx[:args.mb_size]]
-			loss, _ = session.run([loss_op,opt], feed_dict={ob:obs, act:act_train})
+			feed.update({act:act_train})
+			loss, _ = session.run([loss_op,opt], feed_dict=feed)
 			set_writer.add_summary(loss, global_step=global_step)
 			global_step = global_step + 1
 
@@ -215,8 +241,21 @@ def main(args):
 			params_path='{}/{}'.format(args.expert_data_path, mesh)
 
 			expert_policy = load_ddpg.load_policy(load_path, params_path)
-			env = gym.make("SawyerPushAndReachEnvEasy-v0",reward_type=args.reward_type)
 			
+			env = gym.make("SawyerPushAndReachEnvEasy-v0",reward_type=args.reward_type)
+			env = ImageEnv(
+				wrapped_env=env,
+				imsize=64,
+				normalize=True,
+				camera_space=camera_space,
+				init_camera=(lambda x: init_multiple_cameras(x, camera_space)),
+				num_cameras=4,#4 for training
+				depth=True,
+				cam_info=True,
+				reward_type='wrapped_env',
+				flatten=False
+			)
+
 			print("Performing rollouts after training....")
 			roll, plot_data = rollout(env,
 				args.num_dagger_rollouts,
@@ -224,7 +263,7 @@ def main(args):
 				policy,
 				expert_policy,
 				mesh = mesh, 
-				image_env=False)
+				image_env=True)
 			env.close()
 			tf.get_variable_scope().reuse_variables()
 			data = append_paths(data, roll)
@@ -235,10 +274,10 @@ def main(args):
 		minro,maxro,meanro,meanfo= session.run([min_return_op,max_return_op,mean_return_op,mean_final_success_op],feed_dict=\
 			{min_return:np.min(plotters['min_return']),max_return:np.max(plotters['max_return']),mean_return:np.mean(plotters['mean_return']),\
 			mean_final_success:np.mean(plotters['mean_final_success'])})
-		set_writer.add_summary(minro,global_step=global_step)
-		set_writer.add_summary(maxro,global_step=global_step)
-		set_writer.add_summary(meanro,global_step=global_step)
-		set_writer.add_summary(meanfo,global_step=global_step)
+		set_writer.add_summary(minro,  global_step=global_step)
+		set_writer.add_summary(maxro,  global_step=global_step)
+		set_writer.add_summary(meanro, global_step=global_step)
+		set_writer.add_summary(meanfo, global_step=global_step)
 
 		# for key in plotters.keys(): plotters[key].append(plot_data[key])
 
@@ -260,9 +299,21 @@ def test(args):
 
 	# Create environment
 	env = gym.make("SawyerPushAndReachEnvEasy-v0",reward_type=args.reward_type)
-	
+	env = ImageEnv(
+		wrapped_env=env,
+		imsize=64,
+		normalize=True,
+		camera_space=camera_space,
+		init_camera=(lambda x: init_multiple_cameras(x, camera_space)),
+		num_cameras=4,#4 for training
+		depth=True,
+		cam_info=True,
+		reward_type='wrapped_env',
+		flatten=False
+	)
+	is_training = tf.constant(False, dtype=tf.bool)
 	## Define policy network
-	policy = XYZ_XYZ_Policy("dagger_xyz_xyz", env, hidden_sizes=[64, 64, 32])
+	policy = PointNet_XYZ_Policy("dagger_pointnet_xyz", env, hidden_sizes=[256, 1280, 32], is_training=is_training)
 
 	# Start session
 	session = tfu.make_session(num_cpu=2)
@@ -290,7 +341,18 @@ def test(args):
 		print('testing {} '.format(mesh))
 		change_env_to_use_correct_mesh(mesh)
 		env = gym.make("SawyerPushAndReachEnvEasy-v0",reward_type=args.reward_type)
-		
+		env = ImageEnv(
+			wrapped_env=env,
+			imsize=64,
+			normalize=True,
+			camera_space=camera_space,
+			init_camera=(lambda x: init_multiple_cameras(x, camera_space)),
+			num_cameras=4,#4 for training
+			depth=True,
+			cam_info=True,
+			reward_type='wrapped_env',
+			flatten=False
+		)		
 		_, stats = rollout(env,
 				args.test_num_rollouts,
 				args.max_path_length,

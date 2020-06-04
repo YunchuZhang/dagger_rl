@@ -1,9 +1,12 @@
 import imageio
 import numpy as np
-import hyperparams as hyp
+import hyperparams_new as hyp
 import utils_py
 import tensorflow as tf
 import os
+import matplotlib
+matplotlib.use('PS')
+import matplotlib.pyplot as plt 
 
 def get_origin_T_cam_from_angles(distance,angles, do_print=False):
     # the camera is somewhere along a sphere with radius 0.7
@@ -51,6 +54,7 @@ def get_inputs(pkl, puck_z):
     all_cam_info = pkl['cam_info_observation']
     state_position = pkl['observation_with_orientation']
 
+    #import pdb; pdb.set_trace()
     # all_rgbs is B' x S' x H x W x 3
     # all_depths is B' x S' x H x W x 3
     S, H, W = hyp.S, hyp.H, hyp.W
@@ -61,17 +65,16 @@ def get_inputs(pkl, puck_z):
     all_cam_info = np.reshape(all_cam_info, [all_cam_info.shape[0], S, -1])
     state_position = np.reshape(state_position, [state_position.shape[0], -1])
 
-
     datalen = all_rgbs.shape[0]
-    seqlen = all_rgbs.shape[1]
 
+    assert(S==all_rgbs.shape[1])
     assert(H==all_rgbs.shape[2])
     assert(W==all_rgbs.shape[3])
     assert(H==all_depths.shape[2])
     assert(W==all_depths.shape[3])
     # or we can resize
 
-    seq_inds = np.random.permutation(seqlen)[:hyp.S]
+    seq_inds = np.random.permutation(hyp.S)
     B = datalen
 
     rgbs = all_rgbs[:, seq_inds]
@@ -79,7 +82,10 @@ def get_inputs(pkl, puck_z):
     cam_angles = all_cam_info[:, seq_inds, :2]
     puck_position = state_position[:,-11:-9]
     puck_rotation = state_position[:,-9:]
+
+    # Note that can info consists of ele, azim, dist (in that order)
     cam_dist = all_cam_info[:, seq_inds, 2]
+
     world_center = all_cam_info[:, seq_inds, 3:]
     world_center = world_center[0,0,:3].reshape([-1])
 
@@ -110,7 +116,6 @@ def get_inputs(pkl, puck_z):
 
     origin_T_camXs = np.zeros([B, S, 4, 4])
     camR_T_puck = np.zeros_like(puck_T_mujoco)
-
 
     for b in list(range(B)):
         for s in list(range(S)):
@@ -177,13 +182,13 @@ def get_inputs(pkl, puck_z):
 
     # put rgbs in [-.5, .5]
     rgbs = rgbs - 0.5
-
-    rgb_camXs = rgbs.astype(np.uint8)
+    rgb_camXs = rgbs.astype(np.float32)
     depth_camXs = depths.astype(np.float32)
     xyz_camXs = xyz_cams.astype(np.float32)
     pix_T_cams = pix_T_cams.astype(np.float32)
-    origin_T_camRs = origin_T_camRs.astype(np.float32)
+    origin_T_mujoco = origin_T_mujoco.astype(np.float32)
     origin_T_camXs = origin_T_camXs.astype(np.float32)
+    puck_xyz_origin = puck_xyz_origin.astype(np.float32)
 
     d = dict()
     d['pix_T_cams'] = pix_T_cams
@@ -193,39 +198,101 @@ def get_inputs(pkl, puck_z):
     d['origin_T_camRs'] = origin_T_camRs
     d['origin_T_camXs'] = origin_T_camXs
     d['puck_xyz_camRs'] = puck_xyz_camRs
+    d['puck_xyz_origin'] = puck_xyz_origin
+    d['origin_T_mujoco'] = origin_T_mujoco
     d['camRs_T_puck'] = camRs_T_puck
 
 
     # info shared across seqs
     basic_info = dict()
-    basic_info["T"] = B
+    basic_info["B"] = B
     basic_info["S"] = S
     basic_info["image_width"] = hyp.W
     basic_info["image_height"] = hyp.H
-
+    basic_info["num_voxels"] = hyp.V
     return d, basic_info
 
+def create_fig(fig_id,  xlims = [-0.3, 0.3], ylims = [-0.3, 0.3], zlims=[-0.4, 0.4], coord="xright-ydown", title="", mode="3d"):
+    fig = plt.figure(fig_id)
+    if mode == "3d":
+        title += coord
+        if coord == "xright-ydown":
+            title += "(adam)"
+        elif coord == "xleft-ydown":
+            title += "(adam back)"
+        elif coord == "xright-ydown-topview":
+            title += "(adam, top-view)"
+        elif coord == "xleft-ydown-topview":
+            title += "(adam back, top_view)"
+
+    fig.suptitle(title)
+    return fig
+
+def plot_image(image, fig_id=1, fig=None, subplot=111, fig_title="", title=""):
+    """
+    images: SXHXWXC
+    """
+    if fig == None:
+        fig = create_fig(fig_id, mode="2d", title=fig_title)
+
+    ax = fig.add_subplot(subplot)
+    if title is not "":
+        ax.set_title(title)
+
+    H, W, C = image.shape
+    if C == 1:
+        image = np.tile(image, [1,1,3])
+    ax.imshow(image)
+    return fig, ax
+
 # Convert the given data to records
-def convert_to_tfrecords(data, data_dict, tfrecord_filename):
+def convert_to_tfrecords(data, data_dict, tfrecord_filename, mesh):
     tfrecord_options = tf.io.TFRecordOptions('GZIP')
+
     # length of record written to each file
     record_files = []
-    n = data_dict["rgb_camXs"].shape[0]
-    for i, t in enumerate(range(0, n)):
-        # import pdb; pdb.set_trace()
+    num = data_dict["rgb_camXs"].shape[0]
+    count = 0
+    b, n, _, _, _ = data_dict["rgb_camXs"].shape
+    # for s_ in range(b):
+    #     for n_ in range(n):
+    #         fig, ax = plot_image(np.uint8((data_dict['rgb_camXs'][s_][n_] + 0.5) * 255))
+    #         plt.savefig("rgb_images/rgb_img_{}_{}_{}.png".format(count, s_, n_))
+    #         plt.clf()
+
+    #     # print("origin_T_camXs")
+    #     # print(data_dict["origin_T_camXs"][s_])
+
+    #     # print("pix_T_cams")
+    #     # print(data_dict["pix_T_cams"][s_])
+    #     fig, ax = plot_image(data_dict['depth_camXs'][s_][0])
+    #     plt.savefig("depth_images/depth_img_{}_{}.png".format(count, s_))
+    #     plt.clf()
+        # count += 1
+
+    for i, t in enumerate(range(0, num)):
         example = tf.train.Example(features=tf.train.Features(feature={
-            'rgb_camXs': utils_py.bytes_feature(data_dict['rgb_camXs'][i].tostring()), #uint8
+            'rgb_camXs': utils_py.bytes_feature(data_dict['rgb_camXs'][i].tostring()),
             'depth_camXs': utils_py.bytes_feature(data_dict['depth_camXs'][i].tostring()),
             'pix_T_cams': utils_py.bytes_feature(data_dict['pix_T_cams'][i].tostring()),
             'origin_T_camXs': utils_py.bytes_feature(data_dict['origin_T_camXs'][i].tostring()),
-            #'origin_T_camRs': utils_py.bytes_feature(data_dict['origin_T_camRs'][i].tostring()),
-            #'puck_xyz_camRs': utils_py.bytes_feature(data_dict['puck_xyz_camRs'][i].tostring()),
-            #'camRs_T_puck': utils_py.bytes_feature(data_dict['camRs_T_puck'][i].tostring()),
-            #'observation': utils_py.bytes_feature(np.hstack([data['desired_goal'][i], data['achieved_goal'][i]]).tostring())
+            'puck_xyz_origin': utils_py.bytes_feature(data_dict['puck_xyz_origin'][i].tostring()),
+            'observation': utils_py.bytes_feature(data['observation'][i].astype(np.float32).tostring()),
+            'observation_with_orientation': utils_py.bytes_feature(data['observation_with_orientation'][i].astype(np.float32).tostring()),
+            'observation_abs': utils_py.bytes_feature(data['observation_abs'][i].astype(np.float32).tostring()),
+            'object_pose': utils_py.bytes_feature(data['object_pose'][i].astype(np.float32).tostring()),
+            'actions': utils_py.bytes_feature(data['actions'][i].astype(np.float32).tostring()),
+            'desired_goal': utils_py.bytes_feature(data['desired_goal'][i].astype(np.float32).tostring()),
+            'desired_goal_abs': utils_py.bytes_feature(data['desired_goal_abs'][i].astype(np.float32).tostring()),
+            'achieved_goal': utils_py.bytes_feature(data['achieved_goal'][i].astype(np.float32).tostring()),
+            'achieved_goal_abs': utils_py.bytes_feature(data['achieved_goal_abs'][i].astype(np.float32).tostring()),
+            'mesh': utils_py.bytes_feature(mesh.encode('utf-8'))
             }))
+        # print(np.sum(data_dict['rgb_camXs'][i]))
         file = tfrecord_filename.split('/')[-1] + "_" + str(i) + ".tf_records"
         record_files.append(file + "\n")
         with tf.io.TFRecordWriter(tfrecord_filename + "_" + str(i) + ".tf_records", options=tfrecord_options) as writer:
             writer.write(example.SerializeToString())
+    
     return record_files
 
