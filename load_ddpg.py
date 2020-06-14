@@ -11,49 +11,53 @@ from baselines.common import tf_util
 import tensorflow as tf
 from xml.etree import ElementTree as et
 from utils import change_env_to_use_correct_mesh
+
+
 CACHED_ENVS = {}
+multiworld.register_all_envs()
+
 
 def cached_make_env(make_env):
-	if make_env not in CACHED_ENVS:
-		env = make_env()
-		CACHED_ENVS[make_env] = env
-	return CACHED_ENVS[make_env]
+    if make_env not in CACHED_ENVS:
+        env = make_env()
+        CACHED_ENVS[make_env] = env
+    return CACHED_ENVS[make_env]
+
 
 def prepare_params(kwargs):
-	# DDPG params
-	ddpg_params = dict()
-	env_name = kwargs['env_name']
+    # ddpg params
+    ddpg_params = dict()
+    env_name = kwargs['env_name']
 
-	def make_env(subrank=None):
-		env = gym.make(env_name)
-		max_episode_steps = env._max_episode_steps
-		env = gym.wrappers.TimeLimit(env, max_episode_steps=max_episode_steps)
-		return env
+    def make_env(subrank=None):
+        env = gym.make(env_name)
+        max_episode_steps = env._max_episode_steps
+        env = gym.wrappers.TimeLimit(env, max_episode_steps=max_episode_steps)
+        return env
 
-	kwargs['make_env'] = make_env
-	tmp_env = cached_make_env(kwargs['make_env'])
-	assert hasattr(tmp_env, '_max_episode_steps')
+    kwargs['make_env'] = make_env
+    tmp_env = cached_make_env(kwargs['make_env'])
+    assert hasattr(tmp_env, '_max_episode_steps')
 
-	kwargs['T'] = tmp_env._max_episode_steps
+    kwargs['T'] = tmp_env._max_episode_steps
 
-	kwargs['max_u'] = np.array(kwargs['max_u']) if isinstance(kwargs['max_u'], list) else kwargs['max_u']
-	kwargs['gamma'] = 1. - 1. / kwargs['T']
-	if 'lr' in kwargs:
-		kwargs['pi_lr'] = kwargs['lr']
-		kwargs['Q_lr'] = kwargs['lr']
-		del kwargs['lr']
-	for name in ['buffer_size', 'hidden', 'layers',
-				 'network_class',
-				 'polyak',
-				 'batch_size', 'Q_lr', 'pi_lr',
-				 'norm_eps', 'norm_clip', 'max_u',
-				 'action_l2', 'clip_obs', 'scope', 'relative_goals']:
-		ddpg_params[name] = kwargs[name]
-		kwargs['_' + name] = kwargs[name]
-		del kwargs[name]
-	kwargs['ddpg_params'] = ddpg_params
+    kwargs['max_u'] = np.array(kwargs['max_u']) if isinstance(kwargs['max_u'], list) else kwargs['max_u']
+    kwargs['gamma'] = 1. - 1. / kwargs['T']
+    if 'lr' in kwargs:
+        kwargs['pi_lr'] = kwargs['lr']
+        kwargs['Q_lr'] = kwargs['lr']
+        del kwargs['lr']
+    for name in ['buffer_size', 'hidden', 'layers',
+                 'network_class', 'polyak',
+                 'batch_size', 'Q_lr', 'pi_lr',
+                 'norm_eps', 'norm_clip', 'max_u',
+                 'action_l2', 'clip_obs', 'scope', 'relative_goals']:
+        ddpg_params[name] = kwargs[name]
+        kwargs['_' + name] = kwargs[name]
+        del kwargs[name]
+    kwargs['ddpg_params'] = ddpg_params
 
-	return kwargs
+    return kwargs
 
 
 def load_policy(load_path, params_path):
@@ -130,8 +134,5 @@ def main():
 	env.close()
 
 	return model
-
 if __name__ == '__main__':
-	# while True:
-	main()
-		# tf.get_variable_scope().reuse_variables()
+    main()

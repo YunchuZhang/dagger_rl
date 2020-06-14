@@ -7,3 +7,6 @@ policiies/__pycache__
 testcar1_multi
 .DS_Store
 simulate_policy.py
+logs/
+wandb/
+trained_models/
