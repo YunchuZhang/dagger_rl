@@ -199,7 +199,7 @@ def rollout(env,
 		elif not isinstance(policy, GaussianPolicy) and len(path['terminals'])==1:
 			continue
 		rewards.append(R)
-		count_infos.append(infos[-1]['puck_success'])
+		count_infos.append(infos[-1]['is_success'])
 		paths.append(path)
 
 	# print('Minimum return: {}'.format(np.min(rewards)))

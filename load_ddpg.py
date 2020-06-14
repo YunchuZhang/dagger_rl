@@ -1,11 +1,11 @@
 import json
 import sys, os
-import multiworld
 import gym
-multiworld.register_all_envs()
 import numpy as np
-from multiworld.core.image_env import ImageEnv
-from multiworld.envs.mujoco.cameras import init_multiple_cameras
+from gym.envs.robotics.image_env import ImageEnv
+import cv2
+from gym.envs.robotics.camera import init_multiple_cameras
+
 import baselines.her.experiment.config as config
 from baselines.common import tf_util
 import tensorflow as tf
@@ -71,7 +71,7 @@ def load_policy(load_path, params_path):
 	return policy
 
 def main():
-	change_env_to_use_correct_mesh("hamet")
+	# change_env_to_use_correct_mesh("hamet")
 	# "/Users/zyc/Downloads/save200_mouse" 
 	load_path="/Users/zyc/Downloads/save200"
 	# "/Users/zyc/Downloads/save200_mouse" 
@@ -84,10 +84,12 @@ def main():
 	# "/Users/zyc/Downloads"
 	
 
-	model = load_policy(load_path, params_path)
+	# model = load_policy(load_path, params_path)
 
-	env = gym.make("SawyerPushAndReachEnvEasy-v0",reward_type='puck_success')
-	camera_space={'dist_low': 0.7,'dist_high': 1.5,'angle_low': 0,'angle_high': 180,'elev_low': -180,'elev_high': -90}
+	env = gym.make("FetchPickAndPlace-v1")
+	# env = gym.make("FetchPush-v1")
+	# camera_space={'dist_low': 0.7,'dist_high': 1.5,'angle_low': 0,'angle_high': 180,'elev_low': -180,'elev_high': -90}
+	camera_space={'dist_low': 1.,'dist_high': 1.6,'angle_low': 135,'angle_high': -135,'elev_low': -160,'elev_high': -90}
 
 	env = ImageEnv(
 			wrapped_env=env,
@@ -109,12 +111,13 @@ def main():
 	i = 0
 	while True:
 
-		actions, _, _, _ = model.step(obs)
+		# actions, _, _, _ = model.step(obs)
+		actions = env.action_space.sample()
 
-		obs, rew, done, _ = env.step(actions)
+		obs, rew, done, info = env.step(actions)
 		# print(actions)
-		episode_rew += rew[-1] 
-		env.render('wrapped')
+		episode_rew += rew
+		env.render('cv2')
 		if done:
 			print('episode_rew={}'.format(episode_rew))
 			episode_rew = 0
