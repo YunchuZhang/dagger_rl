@@ -58,17 +58,20 @@ def prepare_params(kwargs):
 
 def load_policy(load_path, params_path):
 	with open(params_path + '/params.json') as f:
-		params = json.load(f)
-	clip_return=True
+        params = json.load(f)
+    clip_return=True
 
-	with tf.variable_scope(tf.get_variable_scope(), reuse=tf.AUTO_REUSE):
-		params = prepare_params(params)
-		dims = config.configure_dims(params)
-		policy = config.configure_ddpg(dims=dims, params=params, reuse = False,clip_return=clip_return)
-		if load_path is not None:
-			tf_util.load_variables(load_path)
-			print("Successfully loaded a policy.")
-	return policy
+    with tf.variable_scope(tf.get_variable_scope(), reuse=tf.AUTO_REUSE):
+        params = prepare_params(params)
+        dims = config.configure_dims(params)
+        policy = config.configure_ddpg(dims=dims, params=params, reuse = False,clip_return=clip_return)
+        if load_path is not None:
+            variables = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES)
+            variables = [x for x in variables if x.name.startswith('ddpg')]
+            tf_util.load_variables(load_path, variables=variables)
+            print("Successfully loaded a policy.")
+
+    return policy
 
 def main():
 	# change_env_to_use_correct_mesh("hamet")
