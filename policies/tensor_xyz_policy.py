@@ -7,9 +7,9 @@ import sys
 import getpass
 
 sys.path.append("/home/{}".format(getpass.getuser()))
-import discovery
-discovery_path = os.path.dirname(discovery.__file__)
-sys.path.append(discovery_path)
+# import discovery
+# discovery_path = os.path.dirname(discovery.__file__)
+# sys.path.append(discovery_path)
 from discovery.test_model_loading import MUJOCO_ONLINE
 import discovery.backend.mujoco_online_inputs as mujoco_online_inputs 
 

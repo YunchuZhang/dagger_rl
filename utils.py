@@ -1,9 +1,8 @@
 import os
 import gym
-import multiworld
+# import multiworld
 from glob import glob
 from xml.etree import ElementTree as et
-
 from quantized_policies.pcp_utils.utils import config_from_yaml_file, get_gym_dir, get_root_dir
 from quantized_policies.pcp_utils.mesh_object import MeshObject
 from quantized_policies.pcp_utils.parse_task_files import generate_integrated_xml

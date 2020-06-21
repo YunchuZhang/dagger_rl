@@ -1,0 +1,9 @@
+objs:
+  1004ae81238886674d44f5db04bf14b8:
+    class_id: 3
+    obj_xml_file: bus/1004ae81238886674d44f5db04bf14b8.xml
+    scale: 1.5
+  239f4f66030286e73a304988a6618a7b:
+    class_id: 3
+    obj_xml_file: bus/239f4f66030286e73a304988a6618a7b.xml
+    scale: 1.5

@@ -14,7 +14,7 @@ import warnings
 warnings.filterwarnings("ignore")
 
 import tensorflow as tf
-import multiworld
+# import multiworld
 import gym
 gym.logger.set_level(40)
 import load_ddpg
@@ -22,7 +22,7 @@ import policies.tf_utils as tfu
 
 from policies.xyz_xyz_policy import XYZ_XYZ_Policy
 from rollouts import rollout, append_paths
-from softlearning.environments.gym.wrappers import NormalizeActionWrapper
+# from softlearning.environments.gym.wrappers import NormalizeActionWrapper
 from utils import make_env, get_latest_checkpoint
 
 import matplotlib as mpl
@@ -32,7 +32,7 @@ import seaborn as sns
 sns.set_style('whitegrid')
 
 
-multiworld.register_all_envs()
+# multiworld.register_all_envs()
 
 
 def parse_args():
@@ -78,7 +78,7 @@ def parse_args():
     parser.add_argument('--mb_size', type=int, default=8)
     parser.add_argument('--checkpoint_freq', type=int, default=5)
     parser.add_argument('--test_policy', action='store_true')
-    parser.add_argument('--reward_type', type=str, default='puck_success')
+    parser.add_argument('--reward_type', type=str, default='sparse')
     parser.add_argument('--rollout_interval', type=int, default=2)
 
     # learning rate
@@ -190,8 +190,8 @@ def main(args):
         print('generating {} data'.format(mesh))
 
         # define expert
-        params_path = os.path.join(args.expert_data_path, mesh)
-        load_path = get_latest_checkpoint(params_path)
+        params_path = os.path.join(args.expert_data_path[:-6],'logs', mesh)
+        load_path = get_latest_checkpoint(os.path.join(args.expert_data_path, mesh))
 
         expert_policy = load_ddpg.load_policy(load_path, params_path)
         env = make_env(args.env,
@@ -248,8 +248,8 @@ def main(args):
                 print('Generating rollouts for mesh {}...'.format(mesh))
 
                 # define expert
-                params_path = os.path.join(args.expert_data_path, mesh)
-                load_path = get_latest_checkpoint(params_path)
+                params_path = os.path.join(args.expert_data_path[:-6],'logs', mesh)
+                load_path = get_latest_checkpoint(os.path.join(args.expert_data_path, mesh))
                 expert_policy = load_ddpg.load_policy(load_path, params_path)
 
                 # init environment
