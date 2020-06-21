@@ -6,8 +6,23 @@ This repo contains code for executing the BC distilled baseline for the quantize
 
 ### Repos
 
-The following list contains the repos to be installed. Each should be installed as a pip package or have directories included in the PATH variable.
-
+The following list contains the repos to be installed. Each should be installed as a pip package or have directories included in the PATH variable.     
+To add quantized_policy as an import module:    
+add setup.py, __init__.py and then pip install -e.  
+```
+from distutils.core import setup    
+from setuptools import find_packages    
+setup(
+        name = 'quantized_policies',
+        packages = find_packages(),
+        include_package_data = True,
+        )
+```
+```
+import os
+import sys
+sys.path.append(os.path.dirname(os.path.realpath(__file__)))
+```
 * Quantize Baselines
     - Clone: git@github.com:gsp-27/quantize_baselines.git
     - Branch: ashwini_branch
