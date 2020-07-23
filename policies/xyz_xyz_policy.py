@@ -1,4 +1,5 @@
 import tensorflow as tf
+import tensorflow.contrib.slim as slim
 import numpy as np
 import policies.tf_utils as tfu
 
@@ -22,6 +23,7 @@ class XYZ_XYZ_Policy:
 				 env,
 				 hidden_sizes=[64, 64, 64]):
 		self.obs_dim = sum([env.observation_space.spaces[key].shape[0] for key in KEYS])
+		# self.obs_dim = sum([env.observation_space.spaces[key].shape[0] for key in KEYS])
 		self.act_dim = env.action_space.shape[0]
 		self.hidden_sizes = hidden_sizes
 		self.KEYS = KEYS
@@ -32,11 +34,32 @@ class XYZ_XYZ_Policy:
 
 	def build(self, hidden_sizes):
 
-		ob = tfu.get_placeholder(name="ob",
+		self.ob = tfu.get_placeholder(name="ob",
 							dtype=tf.float32,
 							shape=[None, self.obs_dim])
 		
-		out = ob
+		self.img_ph = tfu.get_placeholder(name="img_ph",dtype=tf.float32,shape=[None,64,64,1])
+		bn = True
+		with slim.arg_scope([slim.conv2d, slim.conv2d_transpose],
+							activation_fn=tf.nn.relu,
+							normalizer_fn=slim.batch_norm if bn else None,
+							):
+			d0 = 8
+			dims = [d0, 2*d0, 4*d0, 8*d0]
+			ksizes = [4, 4, 4, 4]
+			strides = [2, 2, 2, 2]
+			paddings = ['SAME'] * 4
+
+			# ksizes[-1] = 2
+			net = self.img_ph
+			for i, (dim, ksize, stride, padding) in enumerate(zip(dims, ksizes, strides, paddings)):
+				net = slim.conv2d(net, dim, ksize, stride=1, padding=padding)
+				net = tf.nn.pool(net, [3,3], 'MAX', 'SAME', strides = [3,3])
+			net = tf.layers.flatten(net)
+
+
+		out = tf.concat([net, self.ob], -1)
+
 		for i, hidden_size in enumerate(hidden_sizes):
 			out = tf.nn.relu(tfu.dense(out,
 									hidden_size,
@@ -49,26 +72,29 @@ class XYZ_XYZ_Policy:
 						weight_init=tfu.normc_initializer(1))
 
 		self.ac = action
-		self._act = tfu.function([ob], self.ac)
+		self._act = tfu.function([self.ob,self.img_ph], self.ac)
 
 		self.flatvars = tfu.GetFlat(self.get_trainable_variables())
 		self.unflatvars = tfu.SetFromFlat(self.get_trainable_variables())
 
 	def train_process_observation(self, data, idx):
-		data = {key: data[key][idx] for key in self.KEYS}
+		data = {key: data[key][idx] for key in data.keys()}
 		ob = [data[key] for key in self.KEYS]
 		ob = np.hstack(ob)
 		assert ob.shape[-1] == self.obs_dim
-		return ob
+		feed = {}
+		feed.update({self.ob: ob})
+		feed.update({self.img_ph: data['img']})
+		return feed
 
 	def process_observation(self, ob):
 		ob = [ob[key] for key in self.KEYS]
 		ob = np.concatenate(ob)
 		return ob
 
-	def act(self, ob):
+	def act(self, ob, img):
 		ob = self.process_observation(ob)
-		ac = self._act(ob[None])
+		ac = self._act(ob[None],img[None])
 		return ac[0]
 
 	def get_variables(self, scope=None):

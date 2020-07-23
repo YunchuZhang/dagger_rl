@@ -30,6 +30,47 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 sns.set_style('whitegrid')
 
+def change_data(path,filenames,idx):
+	storage = []	
+	for state in idx[:args.mb_size]:
+		with open(path + '/' + filenames[state], 'rb') as f:
+			pkl = pickle.loads(f.read())
+		storage.append(( pkl["observation"], pkl['desired_goal'],\
+		pkl['achieved_goal'],pkl['image_observation'],pkl["depth_observation"],pkl['cam_info_observation'],\
+		pkl['actions'],pkl['terminals'],pkl['obj_sizes'],pkl['puck_zs']))
+
+
+	observation, observation_with_orientation, desired_goal, achieved_goal, image_observation,\
+	depth_observation, cam_info_observation, actions, terminals, obj_sizes,puck_zs = \
+	[], [], [], [], [] ,[] ,[] ,[] ,[] ,[] ,[]
+
+	for i in range(args.mb_size): 
+		a,c,d,e,f,g,h,a2,b2,c2 = storage[i]
+		observation.append(np.array(a, copy=False))
+		# observation_with_orientation.append(np.array(b, copy=False))
+		desired_goal.append(np.array(c, copy=False))
+		achieved_goal.append(np.array(d, copy=False))
+		image_observation.append(np.array(e, copy=False))
+		depth_observation.append(np.array(f, copy=False))
+		cam_info_observation.append(np.array(g, copy=False))
+		actions.append(np.array(h, copy=False))
+		terminals.append(np.array(a2, copy=False))
+		obj_sizes.append(np.array(b2, copy=False))
+		puck_zs.append(np.array(c2, copy=False))
+	total_data = {}
+	total_data.update({'observation': np.array(observation)})
+	# total_data.update({'observation_with_orientation': np.array(observation_with_orientation)})
+	total_data.update({'desired_goal': np.array(desired_goal)})
+	total_data.update({'achieved_goal': np.array(achieved_goal)})
+	total_data.update({'image_observation': np.array(image_observation)})
+	total_data.update({'depth_observation': np.array(depth_observation)})
+	total_data.update({'cam_info_observation': np.array(cam_info_observation)})
+	total_data.update({'actions': np.array(actions)})
+	total_data.update({'terminals': np.array(terminals)})
+	total_data.update({'obj_sizes': np.array(obj_sizes)})
+	total_data.update({'puck_zs': np.array(puck_zs)})
+		
+	return total_data
 
 
 
@@ -55,7 +96,7 @@ def parse_args():
 			help='path to base xml of the environment relative to gym directory')
 	parser.add_argument('--task_config_path',
 			type=str,
-			default='tasks/test.yaml',
+			default='tasks/all.yaml',
 			help='path to task config relative to current directory')
 
 	# policy
@@ -70,13 +111,13 @@ def parse_args():
 	# training
 	parser.add_argument('--max_path_length', '-l', type=int, default=50)
 	parser.add_argument('--num_rollouts', '-n', type=int, default=10)
-	parser.add_argument('--test_num_rollouts', '-tn', type=int, default=20)
+	parser.add_argument('--test_num_rollouts', '-tn', type=int, default=100)
 	parser.add_argument('--num_iterations', type=int, default=50)
 	parser.add_argument('--mb_size', type=int, default=8)
 	parser.add_argument('--checkpoint_freq', type=int, default=5)
 	parser.add_argument('--test_policy', action='store_true')
 	parser.add_argument('--reward_type', type=str, default='sparse')
-	parser.add_argument('--rollout_interval', type=int, default=5)
+	parser.add_argument('--rollout_interval', type=int, default=4)
 
 	# learning rate
 	parser.add_argument('--learning_rate', type=float, default=1e-3)
@@ -97,8 +138,16 @@ def parse_args():
 
 
 def main(args):
-	expert_list = sorted([x.split('/')[-2] for x in glob(os.path.join(args.expert_data_path, '*/'))])
-	expert_list = ['1004ae81238886674d44f5db04bf14b8', '239f4f66030286e73a304988a6618a7b']
+	# expert_list = sorted([x.split('/')[-2] for x in glob(os.path.join(args.expert_data_path, '*/'))])
+	expert_list = [
+	'pen',
+	'583a67819f58209b2f3f67dd919744dd',
+	'381db800b87b5ff88616812464c86290',
+	'a73d531b90965199e5f6d587dbc348b5',
+	'5ef0c4f8c0884a24762241154bf230ce',
+	'6e884701bfddd1f71e1138649f4c219'
+	]
+	data_path = '/home/yunchuz/fetchtemp/dagger_rl/data'
 	# Dictionary of values to plot
 	plotters = {'min_return': [],
 				'max_return': [],
@@ -170,6 +219,7 @@ def main(args):
 	# Exclude ddpg network from gradient computation
 	freeze_patterns = []
 	freeze_patterns.append("ddpg")
+	freeze_patterns.append("feat")
 
 	loss = tf.reduce_mean(tf.squared_difference(policy.ac, act))
 	train_vars = tf.contrib.framework.filter_variables(tf.trainable_variables(),
@@ -234,10 +284,36 @@ def main(args):
 					base_xml_path = args.base_xml_path,
 					task_config_path = args.task_config_path,
 					)
-			np.save('expert_data_{}.npy'.format(args.env), data)
+			# np.save('expert_data_{}.npy'.format(args.env), data)
+			onlyfiles = next(os.walk(data_path))[2]
+			totalnum = len(onlyfiles)
+			print('---------')
+			print("before",totalnum)
+
+			for counter in range(data['achieved_goal'].shape[0]):
+				#save the dagger expert trajectories 
+				expert_data = {'observation': np.array(data['observation'][counter]),
+					# 'observation_with_orientation': np.array(data['observation_with_orientation'][counter]),
+					'desired_goal': np.array(data['desired_goal'][counter]),
+					'achieved_goal': np.array(data['achieved_goal'][counter]),
+					'image_observation':np.array(data['image_observation'][counter]),
+					'depth_observation':np.array(data['depth_observation'][counter]),
+					'cam_info_observation':np.array(data['cam_info_observation'][counter]),
+					'actions':np.array(data['actions'][counter]),
+					'terminals':np.array(data['terminals'][counter]),
+					'obj_sizes':np.array(data['obj_sizes'][counter]),
+					'puck_zs':np.array(data['puck_zs'][counter]),
+				}
+				#print('saving'+'{:d}'.format(counter)+'.pkl')
+				with open(os.path.join(data_path, 'state' + "{:d}".format(totalnum+counter) + '.pkl'), 'wb') as f:
+					pickle.dump(expert_data, f, pickle.HIGHEST_PROTOCOL)
+			onlyfiles = next(os.walk(data_path))[2]
+			totalnum = len(onlyfiles)
+			print('---------')
+			print("after",totalnum)
 			init = False
 		else:
-			roll, _ = rollout(env,
+			data, _ = rollout(env,
 					args.num_rollouts,
 					args.max_path_length,
 					expert_policy,
@@ -245,7 +321,30 @@ def main(args):
 					base_xml_path = args.base_xml_path,
 					task_config_path = args.task_config_path,
 					)
-			data = append_paths(data, roll)
+			# roll = append_paths(roll, data)
+			print('---------')
+			print("before",totalnum)
+			for counter in range(data['achieved_goal'].shape[0]):
+				#save the dagger expert trajectories 
+				expert_data = {'observation': np.array(data['observation'][counter]),
+					# 'observation_with_orientation': np.array(data['observation_with_orientation'][counter]),
+					'desired_goal': np.array(data['desired_goal'][counter]),
+					'achieved_goal': np.array(data['achieved_goal'][counter]),
+					'image_observation':np.array(data['image_observation'][counter]),
+					'depth_observation':np.array(data['depth_observation'][counter]),
+					'cam_info_observation':np.array(data['cam_info_observation'][counter]),
+					'actions':np.array(data['actions'][counter]),
+					'terminals':np.array(data['terminals'][counter]),
+					'obj_sizes':np.array(data['obj_sizes'][counter]),
+					'puck_zs':np.array(data['puck_zs'][counter]),
+				}
+				#print('saving'+'{:d}'.format(counter)+'.pkl')
+				with open(os.path.join(data_path, 'state' + "{:d}".format(totalnum+counter) + '.pkl'), 'wb') as f:
+					pickle.dump(expert_data, f, pickle.HIGHEST_PROTOCOL)
+			onlyfiles = next(os.walk(data_path))[2]
+			totalnum = len(onlyfiles)
+			print('---------')
+			print("after",totalnum)
 		env.close()
 		tf.get_variable_scope().reuse_variables()
 
@@ -256,94 +355,120 @@ def main(args):
 
 	for i in tqdm.tqdm(range(args.num_iterations)):
 		# Parse dataset for supervised learning
-		num_samples = data['achieved_goal'].shape[0]
-		print('num_samples',num_samples)
+		filenames = os.listdir(data_path)
+		num_samples = len(filenames)
+		# print('num_samples',num_samples)
 		idx = np.arange(num_samples)
 		np.random.shuffle(idx)
 		for j in range(num_samples // args.mb_size):
 			np.random.shuffle(idx)
+			data = change_data(data_path,filenames,idx)
 			feed = policy.train_process_observation(data, idx[:args.mb_size])
-			act_train = data['actions'][idx[:args.mb_size]]
+			act_train = data['actions']
 			feed.update({act:act_train})
+
 			loss, _ = session.run([loss_op,opt], feed_dict=feed)
-			log_this = np.mod(global_step, 500) == 0
+			log_this = np.mod(global_step, 5000) == 0
 			if log_this:
 				results = session.run(policy.map3D.summary, feed)
 				set_writer.add_summary(results, global_step)
 			set_writer.add_summary(loss, global_step=global_step)
 			global_step = global_step + 1
-
 		# Generate some new dagger data after every few training iterations
-		if (i + 1) % args.rollout_interval == 0:
-			# Perform rollouts
-			for mesh_ix, mesh in enumerate(expert_list):
-				mesh_name = mesh if len(mesh) < 32 else 'obj{:2d}-{}'.format(mesh_ix, mesh[:4])
-				print('Generating rollouts for mesh {}...'.format(mesh))
+		if i >= 5:
+			if (i + 1) % args.rollout_interval == 0:
+			# if i > 1:
+				# Perform rollouts
+				for mesh_ix, mesh in enumerate(expert_list):
+					mesh_name = mesh if len(mesh) < 32 else 'obj{:2d}-{}'.format(mesh_ix, mesh[:4])
+					print('Generating rollouts for mesh {}...'.format(mesh))
 
-				# define expert
-				params_path = os.path.join(args.expert_data_path[:-6],'logs', mesh)
-				load_path = get_latest_checkpoint(os.path.join(args.expert_data_path, mesh))
-				expert_policy = load_ddpg.load_policy(load_path, params_path)
+					# define expert
+					params_path = os.path.join(args.expert_data_path[:-6],'logs', mesh)
+					load_path = get_latest_checkpoint(os.path.join(args.expert_data_path, mesh))
+					expert_policy = load_ddpg.load_policy(load_path, params_path)
 
-				# init environment
-				env = make_env(args.env,
-							   base_xml_path=args.base_xml_path,
-							   obj_name=mesh,
-							   task_config_path=args.task_config_path,
-							   reward_type=args.reward_type)
-				camera_space={'dist_low': 1.,'dist_high': 1.6,'angle_low': 135,'angle_high': -135,'elev_low': -160,'elev_high': -90}
+					# init environment
+					env = make_env(args.env,
+								   base_xml_path=args.base_xml_path,
+								   obj_name=mesh,
+								   task_config_path=args.task_config_path,
+								   reward_type=args.reward_type)
+					camera_space={'dist_low': 1.,'dist_high': 1.6,'angle_low': 135,'angle_high': -135,'elev_low': -160,'elev_high': -90}
 
-				env = ImageEnv(
-						wrapped_env=env,
-						imsize=64,
-						normalize=True,
-						camera_space=camera_space,
-						init_camera=(lambda x: init_multiple_cameras(x, camera_space)),
-						num_cameras=4,#4 for training
-						depth=True,
-						cam_info=True,
-						reward_type='wrapped_env',
-						flatten=False
-					)
+					env = ImageEnv(
+							wrapped_env=env,
+							imsize=64,
+							normalize=True,
+							camera_space=camera_space,
+							init_camera=(lambda x: init_multiple_cameras(x, camera_space)),
+							num_cameras=4,#4 for training
+							depth=True,
+							cam_info=True,
+							reward_type='wrapped_env',
+							flatten=False
+						)
 
-				should_render = (i // args.rollout_interval) % args.log_img_interval == 0
+					should_render = (i // args.rollout_interval) % args.log_img_interval == 0
 
-				roll, plot_data = rollout(env,
-						args.num_rollouts,
-						args.max_path_length,
-						policy,
-						expert_policy,
-						mesh = mesh,
-						render=should_render,
-						num_visualized_episodes=args.num_visualized_episodes,
-						base_xml_path = args.base_xml_path,
-						task_config_path = args.task_config_path,
-					)
+					data, plot_data = rollout(env,
+							args.num_rollouts,
+							args.max_path_length,
+							policy,
+							expert_policy,
+							mesh = mesh,
+							render=should_render,
+							num_visualized_episodes=args.num_visualized_episodes,
+							base_xml_path = args.base_xml_path,
+							task_config_path = args.task_config_path,
+						)
 
-				env.close()
+					env.close()
 
-				# log scalars
-				if args.wandb:
-					wandb.log({'individual/mean_rew_{}'.format(mesh_name): plot_data['mean_return'],
-						'individual/success_rate_{}'.format(mesh_name): plot_data['success_rate']})
+					# log scalars
+					if args.wandb:
+						wandb.log({'individual/mean_rew_{}'.format(mesh_name): plot_data['mean_return'],
+							'individual/success_rate_{}'.format(mesh_name): plot_data['success_rate']})
 
-				# log images if needed
-				if should_render and args.wandb:
-					vis_videos = np.array(plot_data['images']).transpose([0, 1, 4, 2, 3])
-					wandb.log({"rollout_{}".format(mesh_name): wandb.Video(vis_videos, fps=5, format='mp4')})
+					# log images if needed
+					if should_render and args.wandb:
+						vis_videos = np.array(plot_data['images']).transpose([0, 1, 4, 2, 3])
+						wandb.log({"rollout_{}".format(mesh_name): wandb.Video(vis_videos, fps=5, format='mp4')})
 
-				tf.get_variable_scope().reuse_variables()
-				data = append_paths(data, roll)
+					tf.get_variable_scope().reuse_variables()
+					# data = append_paths(data, roll)
+					print('---------')
+					print("before",totalnum)
+					for counter in range(data['achieved_goal'].shape[0]):
+						#save the dagger expert trajectories 
+						expert_data = {'observation': np.array(data['observation'][counter]),
+							# 'observation_with_orientation': np.array(data['observation_with_orientation'][counter]),
+							'desired_goal': np.array(data['desired_goal'][counter]),
+							'achieved_goal': np.array(data['achieved_goal'][counter]),
+							'image_observation':np.array(data['image_observation'][counter]),
+							'depth_observation':np.array(data['depth_observation'][counter]),
+							'cam_info_observation':np.array(data['cam_info_observation'][counter]),
+							'actions':np.array(data['actions'][counter]),
+							'terminals':np.array(data['terminals'][counter]),
+							'obj_sizes':np.array(data['obj_sizes'][counter]),
+							'puck_zs':np.array(data['puck_zs'][counter]),
+						}
+						#print('saving'+'{:d}'.format(counter)+'.pkl')
+						with open(os.path.join(data_path, 'state' + "{:d}".format(totalnum+counter) + '.pkl'), 'wb') as f:
+							pickle.dump(expert_data, f, pickle.HIGHEST_PROTOCOL)
+					onlyfiles = next(os.walk(data_path))[2]
+					totalnum = len(onlyfiles)
+					print('---------')
+					print("after",totalnum)
+					for key in plotters.keys(): plotters[key].append(plot_data[key])
 
-				for key in plotters.keys(): plotters[key].append(plot_data[key])
-
-			minro,maxro,meanro,meanfo= session.run([min_return_op,max_return_op,mean_return_op,mean_final_success_op],feed_dict=\
-					{min_return:np.min(plotters['min_return']),max_return:np.max(plotters['max_return']),mean_return:np.mean(plotters['mean_return']),\
-					mean_final_success:np.mean(plotters['mean_final_success'])})
-			set_writer.add_summary(minro,global_step=global_step)
-			set_writer.add_summary(maxro,global_step=global_step)
-			set_writer.add_summary(meanro,global_step=global_step)
-			set_writer.add_summary(meanfo,global_step=global_step)
+				minro,maxro,meanro,meanfo= session.run([min_return_op,max_return_op,mean_return_op,mean_final_success_op],feed_dict=\
+						{min_return:np.min(plotters['min_return']),max_return:np.max(plotters['max_return']),mean_return:np.mean(plotters['mean_return']),\
+						mean_final_success:np.mean(plotters['mean_final_success'])})
+				set_writer.add_summary(minro,global_step=global_step)
+				set_writer.add_summary(maxro,global_step=global_step)
+				set_writer.add_summary(meanro,global_step=global_step)
+				set_writer.add_summary(meanfo,global_step=global_step)
 
 		if (i+1)%args.checkpoint_freq==0:
 			savemodel(saver, session, checkpoint_dir_, i+1)
@@ -351,11 +476,26 @@ def main(args):
 	plotting_data(plotters)
 	session.__exit__()
 	session.close()
-
-
+import yaml
+from addict import Dict
+def load_yaml(filename):
+	with open(filename, 'r') as f:
+		content = yaml.load(f, Loader=yaml.Loader)
+	return content
 def test(args):
-	expert_list = [x.split('/')[-1] for x in glob(os.path.join(args.expert_data_path, '*/'))]
-
+	filename = "tasks/all.yaml"
+	config = Dict(load_yaml(filename))
+	expert_list = []
+	for k in config['objs'].keys():
+		expert_list.append(k)
+	# expert_list = [
+	# 'pen',
+	# '583a67819f58209b2f3f67dd919744dd',
+	# '381db800b87b5ff88616812464c86290',
+	# 'a73d531b90965199e5f6d587dbc348b5',
+	# '5ef0c4f8c0884a24762241154bf230ce',
+	# '6e884701bfddd1f71e1138649f4c219'
+	# ]
 	# Dictionary of values to plot
 	plotters = {'min_return': [],
 				'max_return': [],
@@ -365,11 +505,10 @@ def test(args):
 	# Create environment
 	env = make_env(args.env,
 				   base_xml_path=args.base_xml_path,
-				   obj_name=mesh,
+				   obj_name=expert_list[0],
 				   task_config_path=args.task_config_path,
 				   reward_type=args.reward_type)
-	camera_space={'dist_low': 1.,'dist_high': 1.6,'angle_low': 135,'angle_high': -135,'elev_low': -160,'elev_high': -90}
-
+	camera_space={'dist_low': 0.7,'dist_high': 1.5,'angle_low': 0,'angle_high': 180,'elev_low': -180,'elev_high': -90}
 	env = ImageEnv(
 			wrapped_env=env,
 			imsize=64,
@@ -381,7 +520,7 @@ def test(args):
 			cam_info=True,
 			reward_type='wrapped_env',
 			flatten=False
-		)
+			)
 
 	## Define policy network
 	policy = Tensor_XYZ_Policy(args.policy_name, env)
@@ -400,7 +539,6 @@ def test(args):
 		saver.restore(session, os.path.join(args.checkpoint_path, ckpt_name))
 	else:
 		print("...ain't no full checkpoint here!")
-
 	# Rollout policy
 	for mesh in expert_list:
 		print('testing {} '.format(mesh))
@@ -410,7 +548,6 @@ def test(args):
 					   task_config_path=args.task_config_path,
 					   reward_type=args.reward_type)
 		camera_space={'dist_low': 1.,'dist_high': 1.6,'angle_low': 135,'angle_high': -135,'elev_low': -160,'elev_high': -90}
-
 		env = ImageEnv(
 				wrapped_env=env,
 				imsize=64,
@@ -424,17 +561,23 @@ def test(args):
 				flatten=False
 			)
 
+
 		_, stats = rollout(env,
 				args.test_num_rollouts,
 				args.max_path_length,
 				policy,
 				mesh = mesh,
+				num_visualized_episodes=args.num_visualized_episodes,
 				base_xml_path = args.base_xml_path,
 				task_config_path = args.task_config_path,
-				)
+			)
 
+		env.close()
 
+		print('mesh: {} '.format(mesh))
 		for key, value in enumerate(stats):
+			if key == 'images':
+				continue
 			print("{} : {}".format(value, stats[value]))
 
 		for key in plotters.keys(): plotters[key].append(stats[key])
@@ -445,7 +588,7 @@ def test(args):
 			 'mean_final_success': np.mean(plotters['mean_final_success'])}
 	for key, value in enumerate(plott):
 		print("{} : {}".format(value, plott[value]))
-
+	# plotting_data(plott)
 	session.close()
 
 

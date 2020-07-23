@@ -41,7 +41,7 @@ def parse_args():
     # environment
     parser.add_argument('--env',
             type=str,
-            default='FetchPush-v1',
+            default='FetchPickAndPlace-v1',
             help='Environment we are trying to run.')
     parser.add_argument('--goal_type',
             type=str,
@@ -53,7 +53,7 @@ def parse_args():
             choices=['xyz', '3d'])
     parser.add_argument('--base_xml_path',
             type=str,
-            default='gym/envs/robotics/assets/fetch/push.xml',
+            default='gym/envs/robotics/assets/fetch/pick_and_place_kp30000.xml',
             help='path to base xml of the environment relative to gym directory')
     parser.add_argument('--task_config_path',
             type=str,
@@ -73,9 +73,9 @@ def parse_args():
     parser.add_argument('--max_path_length', '-l', type=int, default=50)
     parser.add_argument('--num_rollouts', '-n', type=int, default=500)
     parser.add_argument('--num_dagger_rollouts', '-n-dgr', type=int, default=50)
-    parser.add_argument('--test_num_rollouts', '-tn', type=int, default=20)
+    parser.add_argument('--test_num_rollouts', '-tn', type=int, default=100)
     parser.add_argument('--num_iterations', type=int, default=50)
-    parser.add_argument('--mb_size', type=int, default=8)
+    parser.add_argument('--mb_size', type=int, default=16)
     parser.add_argument('--checkpoint_freq', type=int, default=5)
     parser.add_argument('--test_policy', action='store_true')
     parser.add_argument('--reward_type', type=str, default='sparse')
@@ -97,11 +97,20 @@ def parse_args():
     args = parser.parse_args()
 
     return args
-
+import yaml
+from addict import Dict
+def load_yaml(filename):
+    with open(filename, 'r') as f:
+        content = yaml.load(f, Loader=yaml.Loader)
+    return content
 
 def main(args):
-    expert_list = sorted([x.split('/')[-2] for x in glob(os.path.join(args.expert_data_path, '*/'))])
-
+    # expert_list = sorted([x.split('/')[-2] for x in glob(os.path.join(args.expert_data_path, '*/'))])
+    filename = "tasks/push_small.yaml"
+    config = Dict(load_yaml(filename))
+    expert_list = []
+    for k in config['objs'].keys():
+        expert_list.append(k)
     # Dictionary of values to plot
     plotters = {'min_return': [],
                 'max_return': [],
@@ -131,7 +140,6 @@ def main(args):
 
     ## Define policy network
     policy = XYZ_XYZ_Policy(args.policy_name, env, hidden_sizes=[64, 64, 32])
-
     ## Define DAGGER loss
     ob = tfu.get_placeholder(name="ob",
             dtype=tf.float32,
@@ -190,10 +198,10 @@ def main(args):
         print('generating {} data'.format(mesh))
 
         # define expert
-        params_path = os.path.join(args.expert_data_path[:-6],'logs', mesh)
-        load_path = get_latest_checkpoint(os.path.join(args.expert_data_path, mesh))
+        params_path = os.path.join(args.expert_data_path,mesh,'logs')
+        load_path = get_latest_checkpoint(os.path.join(args.expert_data_path,mesh,'ckpt'))
 
-        expert_policy = load_ddpg.load_policy(load_path, params_path)
+        expert_policy = load_ddpg.load_policy(load_path, params_path, obs_arg="bbox")
         env = make_env(args.env,
                        base_xml_path=args.base_xml_path,
                        obj_name=mesh,
@@ -234,9 +242,10 @@ def main(args):
         np.random.shuffle(idx)
         for j in range(num_samples // args.mb_size):
             np.random.shuffle(idx)
-            obs = policy.train_process_observation(data, idx[:args.mb_size])
+            feed = policy.train_process_observation(data, idx[:args.mb_size])
             act_train = data['actions'][idx[:args.mb_size]]
-            loss, _ = session.run([loss_op,opt], feed_dict={ob:obs, act:act_train})
+            feed.update({act:act_train})
+            loss, _ = session.run([loss_op,opt], feed_dict=feed)
             set_writer.add_summary(loss, global_step=global_step)
             global_step = global_step + 1
 
@@ -248,8 +257,10 @@ def main(args):
                 print('Generating rollouts for mesh {}...'.format(mesh))
 
                 # define expert
-                params_path = os.path.join(args.expert_data_path[:-6],'logs', mesh)
-                load_path = get_latest_checkpoint(os.path.join(args.expert_data_path, mesh))
+                # params_path = os.path.join(args.expert_data_path[:-6],'logs', mesh)
+                # load_path = get_latest_checkpoint(os.path.join(args.expert_data_path, mesh))
+                params_path = os.path.join(args.expert_data_path,mesh,'logs')
+                load_path = get_latest_checkpoint(os.path.join(args.expert_data_path,mesh,'ckpt'))
                 expert_policy = load_ddpg.load_policy(load_path, params_path)
 
                 # init environment
@@ -304,8 +315,12 @@ def main(args):
 
 
 def test(args):
-    expert_list = [x.split('/')[-1] for x in glob(os.path.join(args.expert_data_path, '*/'))]
-
+    # expert_list = [x.split('/')[-1] for x in glob(os.path.join(args.expert_data_path, '*/'))]
+    filename = "tasks/all.yaml"
+    config = Dict(load_yaml(filename))
+    expert_list = []
+    for k in config['objs'].keys():
+        expert_list.append(k)
     # Dictionary of values to plot
     plotters = {'min_return': [],
                 'max_return': [],
@@ -315,7 +330,7 @@ def test(args):
     # Create environment
     env = make_env(args.env,
                    base_xml_path=args.base_xml_path,
-                   obj_name=mesh,
+                   obj_name=expert_list[0],
                    task_config_path=args.task_config_path,
                    reward_type=args.reward_type)
 

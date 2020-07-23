@@ -85,7 +85,6 @@ def make_env(env_name, base_xml_path=None, obj_name=None, task_config_path=None,
         xml_path = generate_integrated_xml(base_xml_path,
                                            obj.obj_xml_file,
                                            scale=obj.scale)
-
         env = gym.make(env_name, xml_path=xml_path, **kwargs)
     else:
         change_env_to_use_correct_mesh(obj_name)

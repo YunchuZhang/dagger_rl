@@ -121,7 +121,7 @@ class Tensor_XYZ_Policy:
 		# puck_z = env._env.env.init_puck_z + \
 		# 		env._env.env.sim.model.geom_pos[env._env.env.sim.model.geom_name2id('puckbox')][-1]
 
-		data = {key: data[key][idx] for key in data.keys()}
+		# data = {key: data[key][idx] for key in data.keys()}
 		ob_tensor = np.hstack([data['desired_goal'],
 								data['achieved_goal']])
 		batch_dict = mujoco_online_inputs.get_inputs(data, data['puck_zs'])

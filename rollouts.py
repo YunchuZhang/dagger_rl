@@ -8,7 +8,7 @@ import tensorflow as tf
 from quantized_policies.pcp_utils.utils import config_from_yaml_file, get_gym_dir, get_root_dir
 from quantized_policies.pcp_utils.mesh_object import MeshObject
 from quantized_policies.pcp_utils.parse_task_files import generate_integrated_xml
-from pcp_utils.np_vis import compute_bonuding_box_from_obj_xml, get_bbox_attribs
+from quantized_policies.pcp_utils.np_vis import compute_bonuding_box_from_obj_xml, get_bbox_attribs
 EXPERT_KEYS = ['observation',
 			   'desired_goal',
 			   'achieved_goal',
@@ -42,11 +42,11 @@ short_keys = ['observation',
 	'gripper_to_rim', 
 	'image_observation', 
 	'depth_observation', 
-	'cam_info_observation', 
-	'image_desired_goal', 
-	'depth_desired_goal', 
-	'cam_info_goal', 
-	'image_achieved_goal']
+	'cam_info_observation']
+	# 'image_desired_goal', 
+	# 'depth_desired_goal', 
+	# 'cam_info_goal'
+	# 'image_achieved_goal']
 
 
 
@@ -118,7 +118,7 @@ def rollout(env,
 
 		bbox_points = compute_bonuding_box_from_obj_xml(obj.obj_xml_file,obj_xpos,obj_xmat,obj.scale)
 		bounds, center, extents = get_bbox_attribs(bbox_points)
-		obj_size = [max(extents)] * 3
+		obj_size = np.repeat(np.max(extents), 3)
 		puck_z = 0.01
 	else:
 		puck_z = 0.01
@@ -146,12 +146,18 @@ def rollout(env,
 	rollout_images = []
 	img = 0
 	count = 0
-
+	img = env.render("rgb_array")
+	img_resize = cv2.resize(img,(64,64),interpolation=cv2.INTER_CUBIC)
+	img_gray = cv2.cvtColor(img_resize,cv2.COLOR_RGB2GRAY)
+	res = np.zeros(img_gray.shape,dtype=np.float32)
+	cv2.normalize(img_gray, res, 0, 1, cv2.NORM_MINMAX,dtype=cv2.CV_32F)
+	img_f = res.reshape(64,64,1)
 	pbar = tqdm(range(num_rollouts), desc='Rollout Mesh {}'.format(mesh))
 
 	for rollout_ix in pbar:
 		t = 0
 		path = {key: [] for key in env_keys}
+		path['img'] = []
 		images = []
 		infos = []
 		observations = []
@@ -160,13 +166,11 @@ def rollout(env,
 		obj_sizes = []
 		puck_zs = []
 		observation = env.reset()
-
 		# render initial image if needed
 		should_render = render and rollout_ix < num_visualized_episodes
 		if should_render:
 			images.append(env.render(mode='rgb_array'))
 
-		observation["observation"][5] *= scale
 		first_reward = True
 		R = 0
 		for t in range(path_length):
@@ -176,7 +180,7 @@ def rollout(env,
 				if image_env:
 					action = actor(observation,obj_size,puck_z)
 				else:
-					action = actor(observation)
+					action = actor(observation,img_f)
 
 			if expert_policy:
 				expert_action,_,_,_ = expert_actor(observation)
@@ -189,9 +193,10 @@ def rollout(env,
 
 			# scale observation
 			# observation["observation"][5] *= scale
-			# import ipdb;ipdb.set_trace()
+
 			for key in env_keys:
 				path[key].append(observation[key])
+			path['img'].append(img_f)
 			actions.append(expert_action)
 			terminals.append(terminal)
 
@@ -212,7 +217,9 @@ def rollout(env,
 
 		pbar.set_description("Rollout Mesh {} [rew={}, cnt={}/{}]".format(mesh, R, count, rollout_ix + 1))
 
-		path = {key: np.stack(path[key], axis=0) for key in env_keys}
+		path = {key: np.stack(path[key], axis=0) for key in path.keys()}
+
+		path['img'] = np.stack(path['img'], axis=0)
 		path['actions'] = np.stack(actions, axis=0)
 		path['terminals'] = np.stack(terminals, axis=0).reshape(-1, 1)
 		if image_env:

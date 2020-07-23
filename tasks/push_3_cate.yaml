@@ -1,0 +1,25 @@
+objs:
+  583a67819f58209b2f3f67dd919744dd:
+    class_id: 7
+    obj_xml_file: 'bus/583a67819f58209b2f3f67dd919744dd.xml'
+    scale: 1.2
+  pen:
+    class_id: 5
+    obj_xml_file: 'robotsuite_objects_centered/pen.xml'
+    scale: 1.2
+  381db800b87b5ff88616812464c86290:
+    class_id: 0
+    obj_xml_file: 'bowls/381db800b87b5ff88616812464c86290.xml'
+    scale: 1.2
+  a73d531b90965199e5f6d587dbc348b5:
+    class_id: 0
+    obj_xml_file: 'bowls/a73d531b90965199e5f6d587dbc348b5.xml'
+    scale: 1.2
+  5ef0c4f8c0884a24762241154bf230ce:
+    class_id: 1
+    obj_xml_file: 'cups/5ef0c4f8c0884a24762241154bf230ce.xml'
+    scale: 1.2
+  6e884701bfddd1f71e1138649f4c219:
+    class_id: 1
+    obj_xml_file: 'cups/6e884701bfddd1f71e1138649f4c219.xml'
+    scale: 1.2

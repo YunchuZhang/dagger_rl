@@ -1,0 +1,132 @@
+objs:
+  1004ae81238886674d44f5db04bf14b8:
+    class_id: 7
+    obj_xml_file: 'bus/1004ae81238886674d44f5db04bf14b8.xml'
+    scale: 1.2
+  239f4f66030286e73a304988a6618a7b:
+    class_id: 7
+    obj_xml_file: 'bus/239f4f66030286e73a304988a6618a7b.xml'
+    scale: 1.2
+  60f4012b5336902b30612f5c0ef21eb8:
+    class_id: 8
+    obj_xml_file: 'can/60f4012b5336902b30612f5c0ef21eb8.xml'
+    scale: 1.2
+  3c1395041fc842dd193d7855ecfc1bd3:
+    class_id: 7
+    obj_xml_file: 'bus/3c1395041fc842dd193d7855ecfc1bd3.xml'
+    scale: 1.2
+  43c425087cf9d73352470de2774d6099:
+    class_id: 7
+    obj_xml_file: 'bus/43c425087cf9d73352470de2774d6099.xml'
+    scale: 1.2
+  311dcc47c8f639a1f3f27ff04a4459b:
+    class_id: 7
+    obj_xml_file: 'bus/311dcc47c8f639a1f3f27ff04a4459b.xml'
+    scale: 1.2
+  48a23d75d3bbdc1c8c6047ec67401af8:
+    class_id: 7
+    obj_xml_file: 'bus/48a23d75d3bbdc1c8c6047ec67401af8.xml'
+    scale: 1.2
+  52e295024593705fb00c487926b62c9:
+    class_id: 8
+    obj_xml_file: 'can/52e295024593705fb00c487926b62c9.xml'
+    scale: 1.2
+  a701862b4a209173c98c13d6112727de:
+    class_id: 7
+    obj_xml_file: 'bus/a701862b4a209173c98c13d6112727de.xml'
+    scale: 1.2
+  b434422365ab5b9df54effbbed1a418b:
+    class_id: 7
+    obj_xml_file: 'bus/b434422365ab5b9df54effbbed1a418b.xml'
+    scale: 1.2
+  5beb6cffe93635bd973f659238edf3c3:
+    class_id: 7
+    obj_xml_file: 'bus/5beb6cffe93635bd973f659238edf3c3.xml'
+    scale: 1.2
+  56803af65db53307467ca2ad6571afff:
+    class_id: 1
+    obj_xml_file: bowls/56803af65db53307467ca2ad6571afff.xml
+    scale: 2.1
+  ac66fb0ff0d50368ced499bff9a86355:
+    class_id: 8
+    obj_xml_file: 'can/ac66fb0ff0d50368ced499bff9a86355.xml'
+    scale: 1.2
+  f99e19b8c4a729353deb88581ea8417a:
+    class_id: 0
+    cluster_id: c0
+    obj_xml_file: cups/f99e19b8c4a729353deb88581ea8417a.xml
+    scale: 1.2
+  7e9ea6ccb5a1689a3299d37e620d2f2:
+    class_id: 8
+    obj_xml_file: 'can/7e9ea6ccb5a1689a3299d37e620d2f2.xml'
+    scale: 1.2
+  a593e8863200fdb0664b3b9b23ddfcbc:
+    class_id: 1
+    cluster_id: c0
+    obj_xml_file: bowls/a593e8863200fdb0664b3b9b23ddfcbc.xml
+    scale: 2.0
+  27119d9b2167080ec190cb14324769d:
+    class_id: 0
+    cluster_id: c0
+    obj_xml_file: cups/27119d9b2167080ec190cb14324769d.xml
+    scale: 1.5
+  292d2dda9923752f3e275dc4ab785b9f:
+    class_id: 1
+    cluster_id: c0
+    obj_xml_file: bowls/292d2dda9923752f3e275dc4ab785b9f.xml
+    scale: 2.0
+  # 599e604a8265cc0a98765d8aa3638e70:
+  #   class_id: 0
+  #   cluster_id: c0
+  #   obj_xml_file: cups/599e604a8265cc0a98765d8aa3638e70.xml
+  #   scale: 1.0
+  2a1e9b5c0cead676b8183a4a81361b94:
+    class_id: 1
+    cluster_id: c0
+    obj_xml_file: bowls/2a1e9b5c0cead676b8183a4a81361b94.xml
+    scale: 2.0
+  b46e89995f4f9cc5161e440f04bd2a2:
+    class_id: 0
+    cluster_id: c0
+    obj_xml_file: cups/b46e89995f4f9cc5161e440f04bd2a2.xml
+    scale: 1.5
+  5c7c4cb503a757147dbda56eabff0c47:
+    class_id: 0
+    cluster_id: c0
+    obj_xml_file: cups/5c7c4cb503a757147dbda56eabff0c47.xml
+    scale: 1.5
+  b9004dcda66abf95b99d2a3bbaea842a:
+    class_id: 0
+    cluster_id: c0
+    obj_xml_file: cups/b9004dcda66abf95b99d2a3bbaea842a.xml
+    scale: 1.0
+  c399bfee7f25f0ff95aab58c1db71c10:
+    class_id: 1
+    cluster_id: c0
+    obj_xml_file: bowls/c399bfee7f25f0ff95aab58c1db71c10.xml
+    scale: 2.0
+  6661c0b9b9b8450c4ee002d643e7b29e:
+    class_id: 0
+    cluster_id: c0
+    obj_xml_file: cups/6661c0b9b9b8450c4ee002d643e7b29e.xml
+    scale: 1.7
+  cfac22c8ca3339b83ce5cb00b21d9584:
+    class_id: 1
+    cluster_id: c0
+    obj_xml_file: bowls/cfac22c8ca3339b83ce5cb00b21d9584.xml
+    scale: 2.0
+  454fa7fd637177cf2bea4b6e7618432:
+    class_id: 1
+    cluster_id: c0
+    obj_xml_file: bowls/454fa7fd637177cf2bea4b6e7618432.xml
+    scale: 2.0
+  6e884701bfddd1f71e1138649f4c219:
+    class_id: 0
+    cluster_id: c0
+    obj_xml_file: cups/6e884701bfddd1f71e1138649f4c219.xml
+    scale: 1.5
+  45603bffc6a2866b5d1ac0d5489f7d84:
+    class_id: 1
+    cluster_id: c0
+    obj_xml_file: bowls/45603bffc6a2866b5d1ac0d5489f7d84.xml
+    scale: 2.0

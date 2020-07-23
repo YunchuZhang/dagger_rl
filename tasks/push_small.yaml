@@ -1,65 +1,63 @@
 objs:
-  1004ae81238886674d44f5db04bf14b8:
-    class_id: 3
-    obj_xml_file: bus/1004ae81238886674d44f5db04bf14b8.xml
-    scale: 1.5
-  bebd29ff5a8e475d20dd2f4d517f8804:
-    class_id: 3
-    obj_xml_file: bus/bebd29ff5a8e475d20dd2f4d517f8804.xml
-    scale: 1.5
-  239f4f66030286e73a304988a6618a7b:
-    class_id: 3
-    obj_xml_file: bus/239f4f66030286e73a304988a6618a7b.xml
-    scale: 1.5
-  c5d30dc6bcabbb56ceeb72b524f3e0ca:
-    class_id: 3
-    obj_xml_file: bus/c5d30dc6bcabbb56ceeb72b524f3e0ca.xml
-    scale: 1.5
-  26c334c2faacbbdd9f46749e28e16975:
-    class_id: 3
-    obj_xml_file: bus/26c334c2faacbbdd9f46749e28e16975.xml
-    scale: 1.5
-  cf2c392c427c5a287a4d6e5c691fbefa:
-    class_id: 3
-    obj_xml_file: bus/cf2c392c427c5a287a4d6e5c691fbefa.xml
-    scale: 1.5
-  2ddf7274d729c372c98c13d6112727de:
-    class_id: 3
-    obj_xml_file: bus/2ddf7274d729c372c98c13d6112727de.xml
-    scale: 1.5
-  dc172096d37448faa3cfa46226644b04:
-    class_id: 3
-    obj_xml_file: bus/dc172096d37448faa3cfa46226644b04.xml
-    scale: 1.5
-  48a23d75d3bbdc1c8c6047ec67401af8:
-    class_id: 3
-    obj_xml_file: bus/48a23d75d3bbdc1c8c6047ec67401af8.xml
-    scale: 1.5
-  f0fb07c3592f55b2c2ae5d9462fe97f3:
-    class_id: 3
-    obj_xml_file: bus/f0fb07c3592f55b2c2ae5d9462fe97f3.xml
-    scale: 1.5
-  583a67819f58209b2f3f67dd919744dd:
-    class_id: 3
-    obj_xml_file: bus/583a67819f58209b2f3f67dd919744dd.xml
-    scale: 1.5
-  f30209622ad392b1dca398a9db6025b3:
-    class_id: 3
-    obj_xml_file: bus/f30209622ad392b1dca398a9db6025b3.xml
-    scale: 1.5
-  5beb6cffe93635bd973f659238edf3c3:
-    class_id: 3
-    obj_xml_file: bus/5beb6cffe93635bd973f659238edf3c3.xml
-    scale: 1.5
-  f6f71cf39d30d421269ee466c7a9d8b0:
-    class_id: 3
-    obj_xml_file: bus/f6f71cf39d30d421269ee466c7a9d8b0.xml
-    scale: 1.5
-  997db64d612406994b525b3ec330a8c9:
-    class_id: 3
-    obj_xml_file: bus/997db64d612406994b525b3ec330a8c9.xml
-    scale: 1.5
-  fb8045ca34f292a087c6856023914391:
-    class_id: 3
-    obj_xml_file: bus/fb8045ca34f292a087c6856023914391.xml
-    scale: 1.5
+    ec846432f3ebedf0a6f32a8797e3b9e9:
+      class_id: 0
+      cluster_id: c0
+      obj_xml_file: cups/ec846432f3ebedf0a6f32a8797e3b9e9.xml
+      scale: 1.5
+    bed9f618bef8d3e9f6d436d018e2b50f:
+      class_id: 1
+      cluster_id: c0
+      obj_xml_file: bowls/bed9f618bef8d3e9f6d436d018e2b50f.xml
+      scale: 2.0
+    1c9f9e25c654cbca3c71bf3f4dd78475:
+      class_id: 0
+      obj_xml_file: cups/1c9f9e25c654cbca3c71bf3f4dd78475.xml
+      scale: 1.5
+    2a1e9b5c0cead676b8183a4a81361b94:
+      class_id: 1
+      obj_xml_file: bowls/2a1e9b5c0cead676b8183a4a81361b94.xml
+      scale: 2.0
+    524eb99c8d45eb01664b3b9b23ddfcbc:
+      class_id: 1
+      obj_xml_file: bowls/524eb99c8d45eb01664b3b9b23ddfcbc.xml
+      scale: 2.0
+    1d18255a04d22794e521eeb8bb14c5b3:
+      class_id: 0
+      obj_xml_file: cups/1d18255a04d22794e521eeb8bb14c5b3.xml
+      scale: 1.5
+    159e56c18906830278d8f8c02c47cde0:
+      class_id: 0
+      obj_xml_file: cups/159e56c18906830278d8f8c02c47cde0.xml
+      scale: 1.2
+    403fb4eb4fc6235adf0c7dbe7f8f4c8e:
+      class_id: 0
+      obj_xml_file: cups/403fb4eb4fc6235adf0c7dbe7f8f4c8e.xml
+      scale: 1.5
+    454fa7fd637177cf2bea4b6e7618432:
+      class_id: 1
+      obj_xml_file: bowls/454fa7fd637177cf2bea4b6e7618432.xml
+      scale: 2.0
+    414772162ef70ec29109ad7f9c200d62:
+      class_id: 0
+      obj_xml_file: cups/414772162ef70ec29109ad7f9c200d62.xml
+      scale: 1.5
+    hammer4:
+       class_id: 2
+       obj_xml_file: 'robotsuite_objects_centered/hammer4.xml'
+       scale: 1.0
+    spray:
+       class_id: 2
+       obj_xml_file: 'robotsuite_objects_centered/spray.xml'
+       scale: 1.0
+    bottle:
+       class_id: 2
+       obj_xml_file: 'robotsuite_objects_centered/bottle.xml'
+       scale: 1.0
+    hammer:
+       class_id: 2
+       obj_xml_file: 'robotsuite_objects_centered/hammer.xml'
+       scale: 1.0
+    nail2:
+       class_id: 2
+       obj_xml_file: 'robotsuite_objects_centered/nail2.xml'
+       scale: 1.0
