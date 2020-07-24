@@ -103,9 +103,11 @@ objs:
     'bottle4':
        class_id: 2
        obj_xml_file: 'robotsuite_objects_centered/bottle4.xml'
+       scale: 1.0
     'bottle3':
        class_id: 2
        obj_xml_file: 'robotsuite_objects_centered/bottle3.xml'
+       scale: 1.0
     '3d693af6fbae47f9cfb661f69a0dfbbd':
         class_id: 7
         obj_xml_file: 'car/3d693af6fbae47f9cfb661f69a0dfbbd.xml'
@@ -128,23 +130,28 @@ objs:
     'camera2':
        class_id: 2
        obj_xml_file: 'robotsuite_objects_centered/camera2.xml'
+       scale: 1.0
 
     'camera':
        class_id: 2
        obj_xml_file: 'robotsuite_objects_centered/camera.xml'
+       scale: 1.0
 #    'nail6':
 #       class_id: 2
 #       obj_xml_file: 'robotsuite_objects_centered/nail6.xml'
     'nail3':
        class_id: 2
        obj_xml_file: 'robotsuite_objects_centered/nail3.xml'
+       scale: 1.0
     'hammer8':
        class_id: 2
        obj_xml_file: 'robotsuite_objects_centered/hammer8.xml'
+       scale: 1.0
     # 30
     'hammer7':
        class_id: 2
        obj_xml_file: 'robotsuite_objects_centered/hammer7.xml'
+       scale: 1.0
     '7e9ea6ccb5a1689a3299d37e620d2f2':
         class_id: 8
         obj_xml_file: 'can/7e9ea6ccb5a1689a3299d37e620d2f2.xml'
@@ -184,3 +191,4 @@ objs:
     'glass':
        class_id: 2
        obj_xml_file: 'robotsuite_objects_centered/glass.xml'
+       scale: 1.0
