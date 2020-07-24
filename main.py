@@ -57,7 +57,7 @@ def parse_args():
             help='path to base xml of the environment relative to gym directory')
     parser.add_argument('--task_config_path',
             type=str,
-            default='tasks/push_small.yaml',
+            default='tasks/all.yaml',
             help='path to task config relative to current directory')
 
     # policy
@@ -313,6 +313,15 @@ def main(args):
 
 
 def test(args):
+    ## initialize wandb
+    if args.wandb:
+        wandb.init(name='dagger_rl.xyz_xyz.{}'.format(args.prefix),
+                   config=args,
+                   entity="katefgroup",
+                   project="quantize",
+                   tags=['dagger_rl', 'xyz_xyz'],
+                   job_type='test' if args.test_policy else 'training',
+                   sync_tensorboard=True)
     # expert_list = [x.split('/')[-1] for x in glob(os.path.join(args.expert_data_path, '*/'))]
     filename = "tasks/all.yaml"
     config = Dict(load_yaml(filename))
@@ -351,7 +360,6 @@ def test(args):
         saver.restore(session, os.path.join(args.checkpoint_path, ckpt_name))
     else:
         print("...ain't no full checkpoint here!")
-
     # Rollout policy
     for mesh in expert_list:
         print('testing {} '.format(mesh))
@@ -361,14 +369,26 @@ def test(args):
                        task_config_path=args.task_config_path,
                        reward_type=args.reward_type)
 
+        should_render = True
         _, stats = rollout(env,
                 args.test_num_rollouts,
                 args.max_path_length,
                 policy,
-                mesh = mesh, image_env=False, is_test=True)
+                mesh = mesh, image_env=False,render=should_render,
+                num_visualized_episodes=args.num_visualized_episodes,is_test=True)
+        env.close()
 
+        # log scalars
+        if args.wandb:
+            wandb.log({'individual/success_rate_{}'.format(mesh): stats['success_rate']})
+
+        # log images if needed
+        if should_render and args.wandb:
+            vis_videos = np.array(stats['images']).transpose([0, 1, 4, 2, 3])
+            wandb.log({"rollout_{}".format(mesh): wandb.Video(vis_videos, fps=5, format='mp4')})
 
         for key, value in enumerate(stats):
+            if value == 'images': continue
             print("{} : {}".format(value, stats[value]))
 
         for key in plotters.keys(): plotters[key].append(stats[key])
