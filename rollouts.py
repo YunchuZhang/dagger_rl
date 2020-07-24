@@ -8,7 +8,7 @@ import tensorflow as tf
 from quantized_policies.pcp_utils.utils import config_from_yaml_file, get_gym_dir, get_root_dir
 from quantized_policies.pcp_utils.mesh_object import MeshObject
 from quantized_policies.pcp_utils.parse_task_files import generate_integrated_xml
-from pcp_utils.np_vis import compute_bonuding_box_from_obj_xml, get_bbox_attribs
+from quantized_policies.pcp_utils.np_vis import compute_bonuding_box_from_obj_xml, get_bbox_attribs
 EXPERT_KEYS = ['observation',
 			   'desired_goal',
 			   'achieved_goal',

@@ -59,7 +59,7 @@ def prepare_params(kwargs):
 	return kwargs
 
 
-def load_policy(load_path, params_path):
+def load_policy(load_path, params_path, obs_arg=None):
 	with open(params_path + '/params.json') as f:
 		params = json.load(f)
 	clip_return=True
@@ -67,6 +67,10 @@ def load_policy(load_path, params_path):
 	with tf.variable_scope(tf.get_variable_scope(), reuse=tf.AUTO_REUSE):
 		params = prepare_params(params)
 		dims = config.configure_dims(params)
+		if obs_arg == "25":
+			dims['o'] = 25
+		if obs_arg == "bbox":
+			dims['o'] = 28
 		policy = config.configure_ddpg(dims=dims, params=params, reuse = False,clip_return=clip_return)
 		if load_path is not None:
 			variables = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES)
