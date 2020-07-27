@@ -57,7 +57,7 @@ def parse_args():
             help='path to base xml of the environment relative to gym directory')
     parser.add_argument('--task_config_path',
             type=str,
-            default='tasks/all.yaml',
+            default='tasks/push_small.yaml',
             help='path to task config relative to current directory')
 
     # policy

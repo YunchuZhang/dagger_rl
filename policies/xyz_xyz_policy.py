@@ -7,7 +7,7 @@ import policies.tf_utils as tfu
 KEYS = [#'observation_with_orientation',
 		'desired_goal',
 		#'achieved_goal_abs',
-		'observation',
+		# 'observation',
 		# 'state_observation',
 		# 'state_desired_goal',
 		# 'state_achieved_goal',
@@ -56,7 +56,6 @@ class XYZ_XYZ_Policy:
 				net = slim.conv2d(net, dim, ksize, stride=1, padding=padding)
 				net = tf.nn.pool(net, [3,3], 'MAX', 'SAME', strides = [3,3])
 			net = tf.layers.flatten(net)
-
 
 		out = tf.concat([net, self.ob], -1)
 

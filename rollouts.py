@@ -191,6 +191,12 @@ def rollout(env,
 			if should_render:
 				images.append(env.render(mode='rgb_array'))
 
+			img = env.render("rgb_array")
+			img_resize = cv2.resize(img,(64,64),interpolation=cv2.INTER_CUBIC)
+			img_gray = cv2.cvtColor(img_resize,cv2.COLOR_RGB2GRAY)
+			res = np.zeros(img_gray.shape,dtype=np.float32)
+			cv2.normalize(img_gray, res, 0, 1, cv2.NORM_MINMAX,dtype=cv2.CV_32F)
+			img_f = res.reshape(64,64,1)
 			# scale observation
 			# observation["observation"][5] *= scale
 
