@@ -114,14 +114,14 @@ class Tensor_XYZ_Policy:
 		self.flatvars = tfu.GetFlat(self.get_trainable_variables())
 		self.unflatvars = tfu.SetFromFlat(self.get_trainable_variables())
 
-	def train_process_observation(self, data, idx):
+	def train_process_observation(self, data):
 
 		# obj_size = env._env.env.sim.model.geom_size[env._env.env.sim.model.geom_name2id('puckbox')]
 		# obj_size = 2 * obj_size
 		# puck_z = env._env.env.init_puck_z + \
 		# 		env._env.env.sim.model.geom_pos[env._env.env.sim.model.geom_name2id('puckbox')][-1]
 
-		data = {key: data[key][idx] for key in data.keys()}
+		data = {key: data[key] for key in data.keys()}
 		ob_tensor = np.hstack([data['desired_goal'],
 								data['achieved_goal']])
 		batch_dict = mujoco_online_inputs.get_inputs(data, data['puck_zs'])

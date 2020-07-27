@@ -8,7 +8,7 @@ import tensorflow as tf
 from quantized_policies.pcp_utils.utils import config_from_yaml_file, get_gym_dir, get_root_dir
 from quantized_policies.pcp_utils.mesh_object import MeshObject
 from quantized_policies.pcp_utils.parse_task_files import generate_integrated_xml
-from quantized_policies.pcp_utils.np_vis import compute_bonuding_box_from_obj_xml, get_bbox_attribs
+from quantized_policies.pcp_utils.np_vis import compute_bounding_box_from_obj_xml, get_bbox_attribs
 EXPERT_KEYS = ['observation',
 			   'desired_goal',
 			   'achieved_goal',
@@ -116,9 +116,9 @@ def rollout(env,
 		obj_xpos = env.env.sim.data.get_body_xpos('object0').copy()
 		obj_xmat = env.env.sim.data.get_body_xmat('object0').copy()
 
-		bbox_points = compute_bonuding_box_from_obj_xml(obj.obj_xml_file,obj_xpos,obj_xmat,obj.scale)
+		bbox_points = compute_bounding_box_from_obj_xml(obj.obj_xml_file,obj_xpos,obj_xmat,obj.scale)
 		bounds, center, extents = get_bbox_attribs(bbox_points)
-		obj_size = [max(extents)] * 3
+		obj_size = np.repeat(np.max(extents), 3)
 		puck_z = 0.01
 	else:
 		puck_z = 0.01

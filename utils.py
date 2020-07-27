@@ -79,12 +79,20 @@ def make_env(env_name, base_xml_path=None, obj_name=None, task_config_path=None,
             repo_dir = os.path.dirname(os.path.realpath(__file__))
             base_xml_path = os.path.join(repo_dir, base_xml_path)
 
+
         # generate modified xml
         objs_config = config_from_yaml_file(task_config_path)
         obj = MeshObject(objs_config['objs'][obj_name], obj_name)
-        xml_path = generate_integrated_xml(base_xml_path,
-                                           obj.obj_xml_file,
-                                           scale=obj.scale)
+        # import ipdb;ipdb.set_trace()
+        # ele = objs_config['objs'][obj_name]
+        # scale = ele['scale'] if 'scale' in ele else 1.0
+        # euler = ele['euler_xyz'] if 'euler_xyz' in ele else None
+        # target_size = ele['target_size'] if 'target_size' in ele else None
+
+        xml_path = generate_integrated_xml(base_xml_path, obj.obj_xml_file,
+                                scale=obj.scale, 
+                                euler=obj.euler,
+                                target_size=None, obj_name=obj_name)
 
         env = gym.make(env_name, xml_path=xml_path, **kwargs)
     else:
