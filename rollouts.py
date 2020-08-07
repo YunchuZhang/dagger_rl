@@ -95,7 +95,7 @@ def rollout(env,
 		is_init_data=False,
 		scale=1.0,
 		render=False,
-		num_visualized_episodes=3,
+		num_visualized_episodes=4,
 		base_xml_path = None,
 		task_config_path = None,
 		):
@@ -164,7 +164,9 @@ def rollout(env,
 		# render initial image if needed
 		should_render = render and rollout_ix < num_visualized_episodes
 		if should_render:
-			images.append(env.render(mode='rgb_array'))
+			env.render(mode='rgb_array',width=500, height=500)
+			images.append(env.render(mode='rgb_array',width=500, height=500))
+		
 
 		observation["observation"][5] *= scale
 		first_reward = True
@@ -185,8 +187,10 @@ def rollout(env,
 
 			observation, reward, terminal, info = env.step(action)
 			if should_render:
-				images.append(env.render(mode='rgb_array'))
-
+				env.render(mode='rgb_array',width=500, height=500)
+				img = env.render(mode='rgb_array',width=500, height=500)
+				images.append(img)
+				# print(img[490][490])
 			# scale observation
 			# observation["observation"][5] *= scale
 			# import ipdb;ipdb.set_trace()

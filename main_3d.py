@@ -102,7 +102,7 @@ def parse_args():
 			help='path to base xml of the environment relative to gym directory')
 	parser.add_argument('--task_config_path',
 			type=str,
-			default='/projects/katefgroup/quantized_policies/quan_meshes_jy/push_v7_train_aug.yaml',
+			default="/projects/katefgroup/quantized_policies/quan_meshes_jy/push_v6_test_aug_rot.yaml",
 			help='path to task config relative to current directory')
 
 	# policy
@@ -117,7 +117,7 @@ def parse_args():
 	# training
 	parser.add_argument('--max_path_length', '-l', type=int, default=50)
 	parser.add_argument('--num_rollouts', '-n', type=int, default=10)
-	parser.add_argument('--test_num_rollouts', '-tn', type=int, default=100)
+	parser.add_argument('--test_num_rollouts', '-tn', type=int, default=10)
 	parser.add_argument('--num_iterations', type=int, default=50)
 	parser.add_argument('--mb_size', type=int, default=8)
 	parser.add_argument('--checkpoint_freq', type=int, default=5)
@@ -146,35 +146,35 @@ def parse_args():
 def main(args):
 	# expert_list = sorted([x.split('/')[-2] for x in glob(os.path.join(args.expert_data_path, '*/'))])
 	expert_list =  [
-	 '2e9a0e216c08293d1395331ebe4786cd',
+	 '2e9a0e216c08293d1395331ebe4786cd', #knive
 	# '1a1dcd236a1e6133860800e6696b8284_r135_x12962',
- '2e9a0e216c08293d1395331ebe4786cd_r090',
+ '2e9a0e216c08293d1395331ebe4786cd_r090', #knife
  # '2acbb7959e6388236d068062d5d5809b_r045',
- '1a48d03a977a6f0aeda0253452893d75_r135_x11444',
+ '1a48d03a977a6f0aeda0253452893d75_r135_x11444',#car
  # '1a97f3c83016abca21d0de04f408950f_x12094',
- '1a48d03a977a6f0aeda0253452893d75_r045_x10796',
+ '1a48d03a977a6f0aeda0253452893d75_r045_x10796',#car
  # '2b5a333c1a5aede3b5449ea1678de914_r135',
- '1ccd676efa14203e4b08e5e8ba35fb4_r045_x10255',
+ '1ccd676efa14203e4b08e5e8ba35fb4_r045_x10255', #bus
  # '7e984643df66189454e185afc91dc396_r090_x10023',
- '1a48d03a977a6f0aeda0253452893d75_r135',
+ '1a48d03a977a6f0aeda0253452893d75_r135',#car
  # '1b9c827d2109f4b2c98c13d6112727de_r090_x13450',
- '6dc3773e131f8001e76bc197b3a3ffc0_x07988',
+ '6dc3773e131f8001e76bc197b3a3ffc0_x07988', #baskets
  # '1a0bc9ab92c915167ae33d942430658c_r090_x08307',
- '4fdb0bd89c490108b8c8761d8f1966ba_x11504',
+ '4fdb0bd89c490108b8c8761d8f1966ba_x11504', #bowl
  # '1bc5d303ff4d6e7e1113901b72a68e7c_x13760',
- '1ccd676efa14203e4b08e5e8ba35fb4_r135_x07285',
+ '1ccd676efa14203e4b08e5e8ba35fb4_r135_x07285', #bus
  # '7a0a4269578ee741adba2821eac2f4fa_x13843',
- '1a1dcd236a1e6133860800e6696b8284_r090_x09325',
+ # '1a1dcd236a1e6133860800e6696b8284_r090_x09325',
  # '1b64b36bf7ddae3d7ad11050da24bb12_x08388',
- '1a48d03a977a6f0aeda0253452893d75_r045_x07440',
+ '1a48d03a977a6f0aeda0253452893d75_r045_x07440',#car
  # '2d8bb293b226dcb678c34bb504731cb9_x12874',
- '2a46fe04fdd20bfdbda733a39f84326d_r090_x12369',
+ # '2a46fe04fdd20bfdbda733a39f84326d_r090_x12369',
  # '63c10cfd6f0ce09a241d076ab53023c1_x11987',
  '1b9c827d2109f4b2c98c13d6112727de_r045_x11211',
  # '27f58201df188ce0c76e1e2d1feb4ae_x12597',
- '1c9568bc37d53a61c98c13d6112727de_r045_x10092',
+ # '1c9568bc37d53a61c98c13d6112727de_r045_x10092',
  # '1e0ecacc02c5584d41cefd10ce5d6cc0_x08516',
- '2acbb7959e6388236d068062d5d5809b_r045_x11167',
+ # '2acbb7959e6388236d068062d5d5809b_r045_x11167',
  # '2b5a333c1a5aede3b5449ea1678de914_x09527',
  '381db800b87b5ff88616812464c86290_x13748',
  # '2b5a333c1a5aede3b5449ea1678de914',
@@ -188,16 +188,17 @@ def main(args):
  # '2b5a333c1a5aede3b5449ea1678de914_x12509',
  '7e984643df66189454e185afc91dc396_x12384',
  # '3dc5a6d79ed591bda709dec9a148b2fe_r090',
- '1a1dcd236a1e6133860800e6696b8284_r090',
+ # '1a1dcd236a1e6133860800e6696b8284_r090',
  # '4ad7d03773d3767c2bc52a80abcabb17_r045_x12330',
  '2b28e2a5080101d245af43a64155c221',
  # '1ccd676efa14203e4b08e5e8ba35fb4_r090_x08492',
  'a3c9dcaada9e04d09061da204e7c463c_x11139',
  # '4ad7d03773d3767c2bc52a80abcabb17_r045_x11039',
- '2e9a0e216c08293d1395331ebe4786cd_r045_x10666',
+ '2e9a0e216c08293d1395331ebe4786cd_r045_x10666', #knife
  # '1ccd676efa14203e4b08e5e8ba35fb4_x08769',
  # '2acbb7959e6388236d068062d5d5809b_r135_x13568',
- '1b74500dc5d2a6547c02d07bab7b395c_r135']
+ # '1b74500dc5d2a6547c02d07bab7b395c_r135'
+ ]
 	data_path = '/home/yunchuz/fetchtemp/dagger_rl/data'
 	# Dictionary of values to plot
 	plotters = {'min_return': [],
@@ -535,7 +536,15 @@ def load_yaml(filename):
 		content = yaml.load(f, Loader=yaml.Loader)
 	return content
 def test(args):
-	filename = "tasks/all.yaml"
+	if args.wandb:
+		wandb.init(name='dagger_rl.xyz_tensor.{}'.format(args.prefix),
+				   config=args,
+				   entity="katefgroup",
+				   project="quantize",
+				   tags=['dagger_rl', 'tensor_xyz'],
+				   job_type='test' if args.test_policy else 'training',
+				   sync_tensorboard=True)
+	filename = "/projects/katefgroup/quantized_policies/quan_meshes_jy/push_v6_test_aug_rot.yaml"
 	config = Dict(load_yaml(filename))
 	expert_list = []
 	for k in config['objs'].keys():
@@ -592,13 +601,14 @@ def test(args):
 	else:
 		print("...ain't no full checkpoint here!")
 	# Rollout policy
+	env_index = 0
 	for mesh in expert_list:
 		print('testing {} '.format(mesh))
 		env = make_env(args.env,
 					   base_xml_path=args.base_xml_path,
 					   obj_name=mesh,
 					   task_config_path=args.task_config_path,
-					   reward_type=args.reward_type)
+					   reward_type=args.reward_type,env_index = env_index)
 		camera_space={'dist_low': 1.,'dist_high': 1.6,'angle_low': 135,'angle_high': -135,'elev_low': -160,'elev_high': -90}
 		env = ImageEnv(
 				wrapped_env=env,
@@ -612,8 +622,8 @@ def test(args):
 				reward_type='wrapped_env',
 				flatten=False
 			)
-
-
+		
+		should_render = True
 		_, stats = rollout(env,
 				args.test_num_rollouts,
 				args.max_path_length,
@@ -621,15 +631,23 @@ def test(args):
 				mesh = mesh,
 				num_visualized_episodes=args.num_visualized_episodes,
 				base_xml_path = args.base_xml_path,
-				task_config_path = args.task_config_path,
+				task_config_path = args.task_config_path,render=should_render,
 			)
 
 		env.close()
+		
+		# log scalars
+		if args.wandb:
+			wandb.log({'individual/success_rate_{}'.format(mesh): stats['success_rate']})
 
-		print('mesh: {} '.format(mesh))
+		# log images if needed
+		if should_render and args.wandb:
+			vis_videos = np.array(stats['images']).transpose([0, 1, 4, 2, 3])
+			wandb.log({"index_{}_".format(env_index) + "rollout_{}".format(mesh): wandb.Video(vis_videos, fps=5, format='mp4')})
+			wandb.log({"index_{}_".format(env_index) + "first_{}".format(mesh): wandb.Video(vis_videos[0], fps=5, format='mp4')})
+		env_index+=1
 		for key, value in enumerate(stats):
-			if key == 'images':
-				continue
+			if value == 'images': continue
 			print("{} : {}".format(value, stats[value]))
 
 		for key in plotters.keys(): plotters[key].append(stats[key])
@@ -640,9 +658,8 @@ def test(args):
 			 'mean_final_success': np.mean(plotters['mean_final_success'])}
 	for key, value in enumerate(plott):
 		print("{} : {}".format(value, plott[value]))
-	# plotting_data(plott)
-	session.close()
 
+	session.close()
 
 def plotting_data(plotters):
 	# plot results

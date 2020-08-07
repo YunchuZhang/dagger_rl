@@ -69,7 +69,7 @@ def change_env_to_rescale_mesh(mesh, scale=1.0):
             x.attrib['scale'] = "{} {} {}".format(scale, scale, scale)
     tree.write(path_to_xml)
 
-def make_env(env_name, base_xml_path=None, obj_name=None, task_config_path=None, **kwargs):
+def make_env(env_name, base_xml_path=None, obj_name=None, task_config_path=None,env_index = None, **kwargs):
     if base_xml_path is not None:
         # process xml path
         if not base_xml_path.startswith('/'):
@@ -88,13 +88,16 @@ def make_env(env_name, base_xml_path=None, obj_name=None, task_config_path=None,
         # scale = ele['scale'] if 'scale' in ele else 1.0
         # euler = ele['euler_xyz'] if 'euler_xyz' in ele else None
         # target_size = ele['target_size'] if 'target_size' in ele else None
-
-        xml_path = generate_integrated_xml(base_xml_path, obj.obj_xml_file,
-                                scale=obj.scale, 
-                                euler=obj.euler,
-                                target_size=None, obj_name=obj_name)
+        # import ipdb;ipdb.set_trace()
+        xml_path = base_xml_path[:-8] + "generated/push_" + obj_name + ".xml"
+        # xml_path = generate_integrated_xml(base_xml_path, obj.obj_xml_file,
+        #                         scale=obj.scale, 
+        #                         euler=obj.euler,
+        #                         randomize_color = True,
+        #                         target_size=None, obj_name=obj_name)
 
         env = gym.make(env_name, xml_path=xml_path, **kwargs)
+        env.seed(env_index)
     else:
         change_env_to_use_correct_mesh(obj_name)
         env = gym.make(env_name, **kwargs)
