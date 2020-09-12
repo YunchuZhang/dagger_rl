@@ -10,28 +10,17 @@ The following list contains the repos to be installed. Each should be installed 
 
 * Quantize Baselines
     - Clone: git@github.com:gsp-27/quantize_baselines.git
-    - Branch: ashwini_branch
-    - Commit: c9fc525674faa45a03c659ad46c3268b822cc1f8
+    - Branch: from_ashwini_branch
 * Quantize Policies
     - Clone: git@github.com:ashwinipokle/quantized_policies.git
-    - Branch: htung-compression
-    - Commit: f1a8a4af665fb843afbdb66db259af753b264587
+    - Branch: from_htung-compression to run this
 * Quantize Gym
     - Clone: git@github.com:gsp-27/quantize-gym.git
-    - Branch: ashwini_branch
-    - Commit: 25849570fe87a2dd505fb84b5c6b8d1c747bf905
+    - Branch: from_htung_cup_branch
 * Discovery
     - Clone: git@bitbucket.org:adamharley/discovery.git
     - Branch: muojco_crop
     - Commit: 28b24cb8cd5cf75e191806beab7cdad20c8a42b4
-* Multiworld
-    - Clone: git@github.com:vitchyr/multiworld.git
-    - Branch: ddpg_yc
-    - Commit: 20efbef943b0bab4a9b6c2b1206e07fac97b2178
-* Softlearning
-    - Clone: git@github.com:YunchuZhang/softlearning.git
-    - Branch: master
-    - Commit: 6039442ae0bd0a07b29ffdc724e1908951f20e70
 
 ### Packages and Versions
 
